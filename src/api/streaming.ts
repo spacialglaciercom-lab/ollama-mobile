@@ -1,58 +1,6 @@
 import { ChatResponse } from './types';
 
 /**
- * Parses newline-delimited JSON stream from Ollama
- * Ollama returns JSON objects separated by double newlines
- */
-export function parseSSEStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<ChatResponse, void, unknown> {
-  return new AsyncGenerator<ChatResponse, void, unknown>(async (controller) => {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Split by double newlines
-        const parts = buffer.split('\n\n');
-        buffer = parts.pop() || '';
-
-        for (const part of parts) {
-          if (part.trim()) {
-            try {
-              const data = JSON.parse(part) as ChatResponse;
-              controller.yield(data);
-            } catch (e) {
-              console.error('Error parsing stream chunk:', e, part);
-            }
-          }
-        }
-      }
-
-      // Process any remaining data in buffer
-      if (buffer.trim()) {
-        try {
-          const data = JSON.parse(buffer) as ChatResponse;
-          controller.yield(data);
-        } catch (e) {
-          console.error('Error parsing final buffer:', e);
-        }
-      }
-    } catch (error) {
-      controller.throw(error);
-    } finally {
-      reader.releaseLock();
-    }
-
-    controller.return();
-  });
-}
-
-/**
  * Creates a fetch request with streaming support for chat
  */
 export async function createChatStreamRequest(
@@ -69,12 +17,14 @@ export async function createChatStreamRequest(
   const cleanUrl = baseUrl.replace(/\/+$/, '');
   const url = `${cleanUrl}/api/chat`;
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-    },
+    headers,
     body: JSON.stringify({
       model,
       messages,
@@ -95,29 +45,61 @@ export async function createChatStreamRequest(
 }
 
 /**
- * Helper to accumulate streaming response content
+ * Parse a ReadableStream into an async generator of ChatResponse objects
  */
-export function accumulateStreamContent(
-  stream: AsyncGenerator<ChatResponse, void, unknown>
-): AsyncGenerator<string, void, unknown> {
-  return new AsyncGenerator<string, void, unknown>(async (controller) => {
-    let fullContent = '';
+export async function* parseChatStream(
+  stream: ReadableStream<Uint8Array>
+): AsyncGenerator<ChatResponse, void, unknown> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
 
-    try {
-      for await (const chunk of stream) {
-        if (chunk.message.content) {
-          fullContent += chunk.message.content;
-          controller.yield(chunk.message.content);
-        }
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-        if (chunk.done) {
-          controller.yield('[DONE]');
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const data = JSON.parse(line) as ChatResponse;
+          yield data;
+        } catch (e) {
+          console.error('Error parsing stream chunk:', e, line);
         }
       }
-    } catch (error) {
-      controller.throw(error);
     }
 
-    controller.return();
-  });
+    if (buffer.trim()) {
+      try {
+        const data = JSON.parse(buffer) as ChatResponse;
+        yield data;
+      } catch (e) {
+        console.error('Error parsing final buffer:', e);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/**
+ * Accumulates streaming content into full text, yielding the accumulated string each token
+ */
+export async function* accumulateStreamContent(
+  stream: AsyncGenerator<ChatResponse, void, unknown>
+): AsyncGenerator<string, void, unknown> {
+  let fullContent = '';
+
+  for await (const chunk of stream) {
+    if (chunk.message?.content) {
+      fullContent += chunk.message.content;
+      yield fullContent;
+    }
+  }
 }

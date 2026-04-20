@@ -8,10 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
   Pressable,
   Alert,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -282,7 +282,7 @@ export default function ChatScreen() {
               </View>
             </View>
           </TouchableOpacity>
-        )}}
+        )}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }

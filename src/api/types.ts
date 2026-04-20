@@ -39,8 +39,6 @@ export interface ChatRequest {
 export interface ChatResponse {
   model: string;
   message: Message;
-  prompt_eval_count: number;
-  eval_count: number;
   done: boolean;
   total_duration?: number;
   load_duration?: number;

@@ -5,9 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  StatusBar,
   Animated,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useServerStore } from '../src/store/useServerStore';
 import { useModelStore } from '../src/store/useModelStore';

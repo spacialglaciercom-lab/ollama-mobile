@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import { createClient } from '../api/ollamaClient';
+import { useState, useCallback } from 'react';
+import { streamChat } from '../api/ollamaClient';
 import { useServerStore } from '../store/useServerStore';
 
 interface UseOllamaStreamReturn {
@@ -37,8 +37,7 @@ export function useOllamaStream(): UseOllamaStreamReturn {
       let fullContent = '';
 
       try {
-        const client = createClient(server.url, server.apiKey);
-        const stream = await client.chat({
+        const gen = streamChat(server.url, server.apiKey, {
           model,
           messages: messages.map((m) => ({
             role: m.role as 'user' | 'assistant' | 'system',
@@ -47,7 +46,7 @@ export function useOllamaStream(): UseOllamaStreamReturn {
           stream: true,
         });
 
-        for await (const chunk of stream) {
+        for await (const chunk of gen) {
           if (chunk.message?.content) {
             fullContent += chunk.message.content;
             onContent(fullContent);

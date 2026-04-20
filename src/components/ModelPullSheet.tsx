@@ -9,7 +9,6 @@ import {
   FlatList,
 } from 'react-native';
 import { useServerStore } from '../store/useServerStore';
-import { createClient } from '../api/ollamaClient';
 
 interface ModelPullSheetProps {
   visible: boolean;

@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useChatStore } from '../src/store/useChatStore';
 import { useModelStore } from '../src/store/useModelStore';
