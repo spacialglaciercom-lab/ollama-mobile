@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "ollama",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
@@ -16,8 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.ollama.mobile",
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "Used to connect to Ollama servers on your local network",
-        "UIBackgroundModes": ["fetch"]
+        "NSLocalNetworkUsageDescription": "Used to connect to Ollama servers on your local network"
       }
     },
     "android": {
