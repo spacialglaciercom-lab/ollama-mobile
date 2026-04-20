@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   FlatList,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useModelStore } from '../store/useModelStore';
+import { ModelPullSheet } from './ModelPullSheet';
 
 interface ModelPickerSheetProps {
   visible: boolean;
@@ -16,6 +17,7 @@ interface ModelPickerSheetProps {
 
 export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
   const { models, selectedModel, selectModel, fetchModels, loading } = useModelStore();
+  const [showPull, setShowPull] = useState(false);
 
   const handleSelect = (name: string) => {
     selectModel(name);
@@ -29,56 +31,76 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.scrim}>
-        <TouchableOpacity style={styles.scrimTouch} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle}>
-            <View style={styles.handleBar} />
-          </View>
-          <View style={styles.sheetNav}>
-            <Text style={styles.sheetTitle}>Model</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.sheetDone}>Done</Text>
+    <>
+      <Modal visible={visible && !showPull} animationType="slide" transparent>
+        <View style={styles.scrim}>
+          <TouchableOpacity style={styles.scrimTouch} onPress={onClose} />
+          <View style={styles.sheet}>
+            <View style={styles.handle}>
+              <View style={styles.handleBar} />
+            </View>
+            <View style={styles.sheetNav}>
+              <Text style={styles.sheetTitle}>Model</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={styles.sheetDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={models}
+              keyExtractor={(item) => item.name}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modelRow}
+                  onPress={() => handleSelect(item.name)}
+                >
+                  <View style={styles.modelDot}>
+                    {selectedModel === item.name && (
+                      <View style={styles.modelDotInner} />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.modelName,
+                      selectedModel === item.name && styles.modelNameActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text style={styles.modelSize}>{formatSize(item.size)}</Text>
+                </TouchableOpacity>
+              )}
+              refreshing={loading}
+              onRefresh={fetchModels}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>
+                    {loading ? 'Loading...' : 'No models found'}
+                  </Text>
+                </View>
+              }
+            />
+
+            <TouchableOpacity
+              style={styles.pullBtn}
+              onPress={() => setShowPull(true)}
+            >
+              <Text style={styles.pullBtnText}>Pull new model</Text>
             </TouchableOpacity>
           </View>
-
-          <FlatList
-            data={models}
-            keyExtractor={(item) => item.name}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.modelRow}
-                onPress={() => handleSelect(item.name)}
-              >
-                <View style={styles.modelDot}>
-                  {selectedModel === item.name && <View style={styles.modelDotInner} />}
-                </View>
-                <Text
-                  style={[
-                    styles.modelName,
-                    selectedModel === item.name && styles.modelNameActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
-                <Text style={styles.modelSize}>{formatSize(item.size)}</Text>
-              </TouchableOpacity>
-            )}
-            refreshing={loading}
-            onRefresh={fetchModels}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>
-                  {loading ? 'Loading...' : 'No models found'}
-                </Text>
-              </View>
-            }
-          />
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <ModelPullSheet
+        visible={showPull}
+        onClose={() => setShowPull(false)}
+        onComplete={() => {
+          fetchModels();
+          setShowPull(false);
+        }}
+      />
+    </>
   );
 }
 
@@ -95,17 +117,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '55%',
   },
-  handle: {
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
-  handleBar: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#3a3a3c',
-  },
+  handle: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+  handleBar: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#3a3a3c' },
   sheetNav: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -127,15 +140,21 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(84,84,88,0.65)',
   },
   modelDot: { width: 20, alignItems: 'center', justifyContent: 'center' },
-  modelDotInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#30d158',
-  },
+  modelDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#30d158' },
   modelName: { flex: 1, fontSize: 17, color: 'rgba(235,235,245,0.8)' },
   modelNameActive: { color: '#fff', fontWeight: '500' },
   modelSize: { fontSize: 15, color: 'rgba(235,235,245,0.3)' },
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { color: 'rgba(235,235,245,0.3)', fontSize: 17 },
+  pullBtn: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: 'rgba(48,209,88,0.12)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(48,209,88,0.3)',
+  },
+  pullBtnText: { color: '#30d158', fontSize: 15, fontWeight: '600' },
 });

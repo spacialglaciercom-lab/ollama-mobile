@@ -18,14 +18,14 @@ export function StreamingBubble({ text, isStreaming }: StreamingBubbleProps) {
 const styles = StyleSheet.create({
   container: {
     maxWidth: '85%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#1c1c1e',
     alignSelf: 'flex-start',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 18,
     borderBottomLeftRadius: 4,
     marginBottom: 8,
   },
-  text: { color: '#e5e5e5', fontSize: 15, lineHeight: 22 },
-  cursor: { color: '#4ade80', fontSize: 14, marginTop: 2 },
+  text: { color: '#e5e5e5', fontSize: 15, lineHeight: 21 },
+  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
 });

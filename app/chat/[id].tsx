@@ -20,6 +20,8 @@ import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { StoredMessage } from '../../src/api/types';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
+import { ModelPullSheet } from '../../src/components/ModelPullSheet';
+import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
@@ -45,6 +47,7 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
   const streamingContentRef = useRef('');
@@ -244,35 +247,42 @@ export default function ChatScreen() {
         data={allMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View
-            style={[
-              styles.bubbleWrap,
-              item.role === 'user'
-                ? styles.bubbleWrapUser
-                : item.role === 'system'
-                  ? styles.bubbleWrapSystem
-                  : styles.bubbleWrapAssistant,
-            ]}
+          <TouchableOpacity
+            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
+            delayLongPress={300}
+            activeOpacity={0.8}
           >
             <View
               style={[
-                styles.bubble,
+                styles.bubbleWrap,
                 item.role === 'user'
-                  ? styles.bubbleUser
+                  ? styles.bubbleWrapUser
                   : item.role === 'system'
-                    ? styles.bubbleSystem
-                    : styles.bubbleAssistant,
+                    ? styles.bubbleWrapSystem
+                    : styles.bubbleWrapAssistant,
+                selectedMessage?.id === item.id && styles.bubbleWrapSelected,
               ]}
             >
-              <Text style={item.role === 'system' ? styles.bubbleSystemText : styles.bubbleText}>
-                {item.content}
-              </Text>
-              {item.id === 'streaming' && streaming && (
-                <Text style={styles.cursor}>▌</Text>
-              )}
+              <View
+                style={[
+                  styles.bubble,
+                  item.role === 'user'
+                    ? styles.bubbleUser
+                    : item.role === 'system'
+                      ? styles.bubbleSystem
+                      : styles.bubbleAssistant,
+                ]}
+              >
+                <Text style={item.role === 'system' ? styles.bubbleSystemText : styles.bubbleText}>
+                  {item.content}
+                </Text>
+                {item.id === 'streaming' && streaming && (
+                  <Text style={styles.cursor}>▌</Text>
+                )}
+              </View>
             </View>
-          </View>
-        )}
+          </TouchableOpacity>
+        )}}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
@@ -365,6 +375,24 @@ export default function ChatScreen() {
 
       {/* Settings Sheet */}
       <SettingsSheet visible={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Message Actions */}
+      <MessageActionSheet
+        visible={!!selectedMessage}
+        onClose={() => setSelectedMessage(null)}
+        content={selectedMessage?.content ?? ''}
+        role={selectedMessage?.role ?? 'assistant'}
+        onRegenerate={() => {
+          setSelectedMessage(null);
+          // Re-send last user message
+          const lastUserMsg = [...localMessages]
+            .reverse()
+            .find((m) => m.role === 'user');
+          if (lastUserMsg) {
+            setInputText(lastUserMsg.content);
+          }
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -445,6 +473,11 @@ const styles = StyleSheet.create({
   bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
   bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
   bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%' },
+  bubbleWrapSelected: {
+    borderWidth: 1.5,
+    borderColor: '#30d158',
+    borderRadius: 18,
+  },
   bubble: { paddingHorizontal: 14, paddingVertical: 10 },
   bubbleUser: {
     backgroundColor: '#1a3a5c',
