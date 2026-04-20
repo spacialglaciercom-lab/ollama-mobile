@@ -35,6 +35,17 @@ export async function initDB(db: SQLite.SQLiteDatabase): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
     CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS repos (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      branch TEXT NOT NULL DEFAULT 'main',
+      last_synced INTEGER,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_repos_created ON repos(created_at DESC);
   `);
 }
 
@@ -127,5 +138,54 @@ export async function insertMessage(message: StoredMessage): Promise<void> {
       message.content,
       message.createdAt,
     ]
+  );
+}
+
+// Repo types
+
+export interface RepoRecord {
+  id: string;
+  name: string;
+  url: string;
+  branch: string;
+  lastSynced: number | null;
+  createdAt: number;
+}
+
+// Repo operations
+
+export async function getRepos(): Promise<RepoRecord[]> {
+  const db = await getDB();
+  const rows = await db.getAllAsync<any>(
+    'SELECT * FROM repos ORDER BY created_at DESC'
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    url: row.url,
+    branch: row.branch,
+    lastSynced: row.last_synced,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function insertRepo(repo: RepoRecord): Promise<void> {
+  const db = await getDB();
+  await db.runAsync(
+    'INSERT INTO repos (id, name, url, branch, last_synced, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [repo.id, repo.name, repo.url, repo.branch, repo.lastSynced, repo.createdAt]
+  );
+}
+
+export async function deleteRepoRecord(id: string): Promise<void> {
+  const db = await getDB();
+  await db.runAsync('DELETE FROM repos WHERE id = ?', [id]);
+}
+
+export async function updateRepoSynced(id: string, timestamp: number): Promise<void> {
+  const db = await getDB();
+  await db.runAsync(
+    'UPDATE repos SET last_synced = ? WHERE id = ?',
+    [timestamp, id]
   );
 }

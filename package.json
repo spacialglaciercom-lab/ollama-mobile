@@ -12,9 +12,11 @@
     "test": "jest"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
     "expo": "~52.0.0",
     "expo-blur": "~14.0.0",
     "expo-crypto": "~14.0.0",
+    "expo-file-system": "^55.0.16",
     "expo-font": "~12.0.0",
     "expo-haptics": "~14.0.0",
     "expo-image-manipulator": "~12.0.0",
@@ -29,6 +31,7 @@
     "expo-status-bar": "~1.12.0",
     "expo-system-ui": "~3.0.0",
     "expo-web-browser": "~14.0.0",
+    "isomorphic-git": "^1.37.5",
     "nativewind": "^4.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

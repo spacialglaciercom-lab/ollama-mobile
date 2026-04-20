@@ -15,6 +15,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="setup" />
         <Stack.Screen name="chat/[id]" />
+        <Stack.Screen name="repos" />
       </Stack>
     </>
   );
