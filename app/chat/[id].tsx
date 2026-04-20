@@ -9,7 +9,6 @@ import {
   Platform,
   StyleSheet,
   StatusBar,
-  Modal,
   Pressable,
   Alert,
 } from 'react-native';
@@ -31,6 +30,7 @@ export default function ChatScreen() {
     addMessage,
     setActiveConversation,
     loadMessages,
+    updateConversationTitle,
   } = useChatStore();
   const { models, selectedModel, selectModel, fetchModels } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
@@ -42,6 +42,9 @@ export default function ChatScreen() {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
+  const [systemPromptText, setSystemPromptText] = useState('');
+  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
   const streamingContentRef = useRef('');
@@ -62,7 +65,13 @@ export default function ChatScreen() {
       setActiveConversation(id);
       loadMessages(id).then(() => {
         const conv = conversations.find((c) => c.id === id);
-        if (conv) selectModel(conv.model);
+        if (conv) {
+          selectModel(conv.model);
+          if (conv.systemPrompt) {
+            setSystemPromptText(conv.systemPrompt);
+            setShowSystemPrompt(true);
+          }
+        }
       });
     }
   }, [id]);
@@ -82,14 +91,27 @@ export default function ChatScreen() {
     if (!text || !conversationRef.current || !selectedModel || streaming) return;
 
     setInputText('');
+    setTokenStats(null);
 
     const convId = conversationRef.current;
+
+    // Add system prompt message if set
+    if (showSystemPrompt && systemPromptText.trim()) {
+      await addMessage(convId, 'system', systemPromptText.trim());
+    }
+
+    // Add user message
     const userMsg = await addMessage(convId, 'user', text);
     setLocalMessages((prev) => [...prev, userMsg]);
 
-    const apiMessages = localMessages
+    // Build messages array for API
+    const apiMessages: Array<{ role: string; content: string }> = [];
+    if (showSystemPrompt && systemPromptText.trim()) {
+      apiMessages.push({ role: 'system', content: systemPromptText.trim() });
+    }
+    localMessages
       .filter((m) => m.role !== 'system')
-      .map((m) => ({ role: m.role, content: m.content }));
+      .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
     apiMessages.push({ role: 'user', content: text });
 
     setStreamingContent('');
@@ -109,7 +131,14 @@ export default function ChatScreen() {
         }
       }
     );
-  }, [inputText, selectedModel, localMessages, streaming, addMessage, sendMessage]);
+
+    // Auto-title from first user message
+    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    if (conv && conv.title === 'New Chat') {
+      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
+      updateConversationTitle(convId, title);
+    }
+  }, [inputText, selectedModel, localMessages, streaming, addMessage, sendMessage, systemPromptText, showSystemPrompt]);
 
   const allMessages = [
     ...localMessages,
@@ -165,7 +194,10 @@ export default function ChatScreen() {
           <View style={styles.menuPopover}>
             <TouchableOpacity
               style={styles.menuRow}
-              onPress={() => { setShowMenu(false); setShowSettings(true); }}
+              onPress={() => {
+                setShowMenu(false);
+                setShowSettings(true);
+              }}
             >
               <Text style={styles.menuLabel}>Settings</Text>
             </TouchableOpacity>
@@ -178,6 +210,16 @@ export default function ChatScreen() {
               }}
             >
               <Text style={styles.menuLabelAccent}>Refresh Models</Text>
+            </TouchableOpacity>
+            <View style={styles.menuSep} />
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                setShowMenu(false);
+                setShowSystemPrompt(!showSystemPrompt);
+              }}
+            >
+              <Text style={styles.menuLabel}>System Prompt</Text>
             </TouchableOpacity>
             <View style={styles.menuSep} />
             <TouchableOpacity
@@ -205,16 +247,26 @@ export default function ChatScreen() {
           <View
             style={[
               styles.bubbleWrap,
-              item.role === 'user' ? styles.bubbleWrapUser : styles.bubbleWrapAssistant,
+              item.role === 'user'
+                ? styles.bubbleWrapUser
+                : item.role === 'system'
+                  ? styles.bubbleWrapSystem
+                  : styles.bubbleWrapAssistant,
             ]}
           >
             <View
               style={[
                 styles.bubble,
-                item.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant,
+                item.role === 'user'
+                  ? styles.bubbleUser
+                  : item.role === 'system'
+                    ? styles.bubbleSystem
+                    : styles.bubbleAssistant,
               ]}
             >
-              <Text style={styles.bubbleText}>{item.content}</Text>
+              <Text style={item.role === 'system' ? styles.bubbleSystemText : styles.bubbleText}>
+                {item.content}
+              </Text>
               {item.id === 'streaming' && streaming && (
                 <Text style={styles.cursor}>▌</Text>
               )}
@@ -234,6 +286,29 @@ export default function ChatScreen() {
         }
       />
 
+      {/* Token stats */}
+      {tokenStats && !streaming && (
+        <View style={styles.tokenBar}>
+          <Text style={styles.tokenText}>
+            Prompt: {tokenStats.promptEval} · Response: {tokenStats.eval}
+          </Text>
+        </View>
+      )}
+
+      {/* System prompt area */}
+      {showSystemPrompt && (
+        <View style={styles.sysPromptArea}>
+          <TextInput
+            style={styles.sysPromptInput}
+            value={systemPromptText}
+            onChangeText={setSystemPromptText}
+            placeholder="System prompt (optional)..."
+            placeholderTextColor="rgba(235,235,245,0.18)"
+            multiline
+          />
+        </View>
+      )}
+
       {/* Input Bar */}
       <View style={styles.inputBar}>
         <View style={styles.inputRow}>
@@ -250,7 +325,9 @@ export default function ChatScreen() {
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              inputText.trim() && !streaming ? styles.sendBtnActive : styles.sendBtnInactive,
+              inputText.trim() && !streaming
+                ? styles.sendBtnActive
+                : styles.sendBtnInactive,
             ]}
             onPress={handleSend}
             disabled={!inputText.trim() || streaming}
@@ -266,6 +343,14 @@ export default function ChatScreen() {
               <Text style={styles.chipText}>🟢 {activeServer.name}</Text>
             </View>
           )}
+          <TouchableOpacity
+            style={styles.chipFaint}
+            onPress={() => setShowSystemPrompt(!showSystemPrompt)}
+          >
+            <Text style={styles.chipFaintText}>
+              {showSystemPrompt ? '✕ System' : '+ System prompt'}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.chipFaint}>
             <Text style={styles.chipFaintText}>+ Add context</Text>
           </TouchableOpacity>
@@ -333,10 +418,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 20 },
     elevation: 10,
   },
-  menuRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-  },
+  menuRow: { paddingHorizontal: 16, paddingVertical: 11 },
   menuLabel: { color: '#fff', fontSize: 17 },
   menuLabelAccent: { color: '#30d158', fontSize: 17 },
   menuLabelDanger: { color: '#ff453a', fontSize: 17 },
@@ -348,11 +430,21 @@ const styles = StyleSheet.create({
   messagesList: { paddingHorizontal: 16, paddingVertical: 12 },
   messagesEmpty: { flexGrow: 1, justifyContent: 'center' },
   emptyState: { alignItems: 'center' },
-  emptyTitle: { color: 'rgba(235,235,245,0.3)', fontSize: 20, fontWeight: '600' },
-  emptySub: { color: 'rgba(235,235,245,0.18)', fontSize: 15, marginTop: 4, textAlign: 'center' },
+  emptyTitle: {
+    color: 'rgba(235,235,245,0.3)',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  emptySub: {
+    color: 'rgba(235,235,245,0.18)',
+    fontSize: 15,
+    marginTop: 4,
+    textAlign: 'center',
+  },
   bubbleWrap: { marginBottom: 8 },
   bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
   bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
+  bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%' },
   bubble: { paddingHorizontal: 14, paddingVertical: 10 },
   bubbleUser: {
     backgroundColor: '#1a3a5c',
@@ -364,8 +456,41 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderBottomLeftRadius: 4,
   },
+  bubbleSystem: {
+    backgroundColor: 'rgba(48,209,88,0.08)',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(48,209,88,0.2)',
+  },
   bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  bubbleSystemText: {
+    color: 'rgba(48,209,88,0.7)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
   cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
+  tokenBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  tokenText: { color: 'rgba(235,235,245,0.3)', fontSize: 12 },
+  sysPromptArea: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minHeight: 48,
+  },
+  sysPromptInput: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: 'rgba(48,209,88,0.7)',
+    minHeight: 48,
+    maxHeight: 100,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(48,209,88,0.2)',
+  },
   inputBar: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(84,84,88,0.65)',
