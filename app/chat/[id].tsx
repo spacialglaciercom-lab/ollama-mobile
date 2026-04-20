@@ -8,38 +8,48 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  StatusBar,
+  Modal,
+  Pressable,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
 import { useServerStore } from '../../src/store/useServerStore';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
-import { MessageBubble } from '../../src/components/chat/MessageBubble';
-import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
-import { ChatInput } from '../../src/components/chat/ChatInput';
 import { StoredMessage } from '../../src/api/types';
+import { SettingsSheet } from '../../src/components/SettingsSheet';
+import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
     conversations,
     messages,
-    activeConversationId,
     createConversation,
     addMessage,
     setActiveConversation,
     loadMessages,
   } = useChatStore();
-  const { selectedModel, models, selectModel } = useModelStore();
+  const { models, selectedModel, selectModel, fetchModels } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
   const [streamingContent, setStreamingContent] = useState('');
   const [localMessages, setLocalMessages] = useState<StoredMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
-  // Initialize conversation
+  useEffect(() => {
+    streamingContentRef.current = streamingContent;
+  }, [streamingContent]);
+
   useEffect(() => {
     if (id === 'new') {
       const model = paramModel || selectedModel || 'gpt-oss:120b';
@@ -57,59 +67,49 @@ export default function ChatScreen() {
     }
   }, [id]);
 
-  // Sync local messages with store
   useEffect(() => {
     setLocalMessages(messages);
   }, [messages]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
-    if (localMessages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+    if (localMessages.length > 0 || streamingContent) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
     }
   }, [localMessages.length, streamingContent]);
 
-  const handleSend = useCallback(
-    async (text: string) => {
-      if (!text.trim() || !conversationRef.current || !selectedModel) return;
+  const handleSend = useCallback(async () => {
+    const text = inputText.trim();
+    if (!text || !conversationRef.current || !selectedModel || streaming) return;
 
-      const convId = conversationRef.current;
+    setInputText('');
 
-      // Add user message
-      const userMsg = await addMessage(convId, 'user', text.trim());
-      setLocalMessages((prev) => [...prev, userMsg]);
+    const convId = conversationRef.current;
+    const userMsg = await addMessage(convId, 'user', text);
+    setLocalMessages((prev) => [...prev, userMsg]);
 
-      // Build messages array for API
-      const conv = conversations.find((c) => c.id === convId);
-      const apiMessages = [
-        ...(conv?.systemPrompt
-          ? [{ role: 'system' as const, content: conv.systemPrompt }]
-          : []),
-        ...localMessages
-          .filter((m) => m.role !== 'system')
-          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-        { role: 'user' as const, content: text.trim() },
-      ];
+    const apiMessages = localMessages
+      .filter((m) => m.role !== 'system')
+      .map((m) => ({ role: m.role, content: m.content }));
+    apiMessages.push({ role: 'user', content: text });
 
-      setStreamingContent('');
+    setStreamingContent('');
 
-      // Stream response
-      await sendMessage(
-        selectedModel,
-        apiMessages,
-        (token) => {
-          setStreamingContent((prev) => prev + token);
-        },
-        async () => {
-          const finalContent = streamingContent;
-          setStreamingContent('');
+    await sendMessage(
+      selectedModel,
+      apiMessages,
+      (fullContent) => {
+        setStreamingContent(fullContent);
+      },
+      async () => {
+        const finalContent = streamingContentRef.current;
+        setStreamingContent('');
+        if (finalContent) {
           const assistantMsg = await addMessage(convId, 'assistant', finalContent);
           setLocalMessages((prev) => [...prev, assistantMsg]);
         }
-      );
-    },
-    [selectedModel, localMessages, conversations, addMessage, sendMessage]
-  );
+      }
+    );
+  }, [inputText, selectedModel, localMessages, streaming, addMessage, sendMessage]);
 
   const allMessages = [
     ...localMessages,
@@ -126,71 +126,302 @@ export default function ChatScreen() {
       : []),
   ];
 
-  const currentModel = selectedModel || paramModel || 'No model';
+  const currentModel = selectedModel || paramModel || 'Select model';
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <Text style={styles.modelName} numberOfLines={1}>
-          {currentModel}
-        </Text>
-        <View style={styles.statusRow}>
-          <View
-            style={[
-              styles.statusDot,
-              { backgroundColor: activeServer ? '#4ade80' : '#f87171' },
-            ]}
-          />
-          <Text style={styles.statusText}>
-            {activeServer?.name ?? 'No server'}
+      <StatusBar style="light" />
+
+      {/* Nav Bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
+          <Text style={styles.navBtnText}>‹ Back</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.modelPill}
+          onPress={() => setShowModelPicker(true)}
+        >
+          <Text style={styles.modelPillText} numberOfLines={1}>
+            {currentModel}
           </Text>
-        </View>
+          <Text style={styles.modelPillCaret}>▾</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navBtn}
+          onPress={() => setShowMenu(!showMenu)}
+        >
+          <Text style={styles.navBtnIcon}>···</Text>
+        </TouchableOpacity>
       </View>
 
+      {/* Popover Menu */}
+      {showMenu && (
+        <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
+          <View style={styles.menuPopover}>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => { setShowMenu(false); setShowSettings(true); }}
+            >
+              <Text style={styles.menuLabel}>Settings</Text>
+            </TouchableOpacity>
+            <View style={styles.menuSep} />
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                setShowMenu(false);
+                if (activeServer) fetchModels();
+              }}
+            >
+              <Text style={styles.menuLabelAccent}>Refresh Models</Text>
+            </TouchableOpacity>
+            <View style={styles.menuSep} />
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                setShowMenu(false);
+                Alert.alert('Clear Chat', 'Clear this conversation?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Clear', style: 'destructive' },
+                ]);
+              }}
+            >
+              <Text style={styles.menuLabelDanger}>Clear Chat</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      )}
+
+      {/* Messages */}
       <FlatList
         ref={flatListRef}
         data={allMessages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) =>
-          item.id === 'streaming' ? (
-            <StreamingBubble text={item.content} isStreaming={streaming} />
-          ) : (
-            <MessageBubble role={item.role} content={item.content} />
-          )
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.bubbleWrap,
+              item.role === 'user' ? styles.bubbleWrapUser : styles.bubbleWrapAssistant,
+            ]}
+          >
+            <View
+              style={[
+                styles.bubble,
+                item.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant,
+              ]}
+            >
+              <Text style={styles.bubbleText}>{item.content}</Text>
+              {item.id === 'streaming' && streaming && (
+                <Text style={styles.cursor}>▌</Text>
+              )}
+            </View>
+          </View>
+        )}
+        contentContainerStyle={
+          allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
-        contentContainerStyle={styles.messageList}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Start a conversation</Text>
             <Text style={styles.emptySub}>
-              Send a message to begin chatting with {currentModel}
+              Send a message to begin chatting
             </Text>
           </View>
         }
       />
 
-      <ChatInput onSend={handleSend} disabled={streaming} />
+      {/* Input Bar */}
+      <View style={styles.inputBar}>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.inputField}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Message..."
+            placeholderTextColor="rgba(235,235,245,0.3)"
+            multiline
+            maxLength={4000}
+            editable={!streaming}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendBtn,
+              inputText.trim() && !streaming ? styles.sendBtnActive : styles.sendBtnInactive,
+            ]}
+            onPress={handleSend}
+            disabled={!inputText.trim() || streaming}
+          >
+            <Text style={styles.sendBtnIcon}>↑</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Context chips */}
+        <View style={styles.chips}>
+          {activeServer && (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>🟢 {activeServer.name}</Text>
+            </View>
+          )}
+          <TouchableOpacity style={styles.chipFaint}>
+            <Text style={styles.chipFaintText}>+ Add context</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Model Picker Sheet */}
+      <ModelPickerSheet
+        visible={showModelPicker}
+        onClose={() => setShowModelPicker(false)}
+      />
+
+      {/* Settings Sheet */}
+      <SettingsSheet visible={showSettings} onClose={() => setShowSettings(false)} />
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomColor: '#1a1a1a',
-    borderBottomWidth: 1,
+  container: { flex: 1, backgroundColor: '#000000' },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 56,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(84,84,88,0.65)',
   },
-  modelName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
-  statusText: { color: '#888', fontSize: 12 },
-  messageList: { paddingBottom: 16, paddingHorizontal: 16 },
-  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-  emptyTitle: { color: '#666', fontSize: 20, fontWeight: '600' },
-  emptySub: { color: '#444', fontSize: 14, marginTop: 4, textAlign: 'center' },
+  navBtn: { padding: 8 },
+  navBtnText: { color: '#0a84ff', fontSize: 17 },
+  navBtnIcon: { color: '#0a84ff', fontSize: 22, fontWeight: '700' },
+  modelPill: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: 200,
+  },
+  modelPillText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  modelPillCaret: { color: 'rgba(235,235,245,0.3)', fontSize: 12 },
+  menuScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 20,
+  },
+  menuPopover: {
+    position: 'absolute',
+    top: 96,
+    right: 16,
+    width: 220,
+    backgroundColor: 'rgba(44,44,46,0.97)',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.7,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 20 },
+    elevation: 10,
+  },
+  menuRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  menuLabel: { color: '#fff', fontSize: 17 },
+  menuLabelAccent: { color: '#30d158', fontSize: 17 },
+  menuLabelDanger: { color: '#ff453a', fontSize: 17 },
+  menuSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(84,84,88,0.65)',
+    marginHorizontal: 12,
+  },
+  messagesList: { paddingHorizontal: 16, paddingVertical: 12 },
+  messagesEmpty: { flexGrow: 1, justifyContent: 'center' },
+  emptyState: { alignItems: 'center' },
+  emptyTitle: { color: 'rgba(235,235,245,0.3)', fontSize: 20, fontWeight: '600' },
+  emptySub: { color: 'rgba(235,235,245,0.18)', fontSize: 15, marginTop: 4, textAlign: 'center' },
+  bubbleWrap: { marginBottom: 8 },
+  bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
+  bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
+  bubble: { paddingHorizontal: 14, paddingVertical: 10 },
+  bubbleUser: {
+    backgroundColor: '#1a3a5c',
+    borderRadius: 18,
+    borderBottomRightRadius: 4,
+  },
+  bubbleAssistant: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+  },
+  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
+  inputBar: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(84,84,88,0.65)',
+    backgroundColor: '#000',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
+    gap: 10,
+  },
+  inputField: {
+    flex: 1,
+    backgroundColor: '#1c1c1e',
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    fontSize: 15,
+    color: '#fff',
+    minHeight: 38,
+    maxHeight: 120,
+  },
+  sendBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtnActive: { backgroundColor: '#30d158' },
+  sendBtnInactive: { backgroundColor: '#2c2c2e', opacity: 0.5 },
+  sendBtnIcon: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  chips: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingBottom: 20,
+    paddingTop: 2,
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  chipText: { color: 'rgba(235,235,245,0.8)', fontSize: 13 },
+  chipFaint: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderStyle: 'dashed',
+  },
+  chipFaintText: { color: 'rgba(235,235,245,0.3)', fontSize: 13 },
 });

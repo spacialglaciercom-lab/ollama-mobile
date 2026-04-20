@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createClient } from '../api/ollamaClient';
 import { useServerStore } from '../store/useServerStore';
 
@@ -6,7 +6,7 @@ interface UseOllamaStreamReturn {
   sendMessage: (
     model: string,
     messages: Array<{ role: string; content: string }>,
-    onToken: (token: string) => void,
+    onContent: (fullContent: string) => void,
     onDone: () => void
   ) => Promise<void>;
   streaming: boolean;
@@ -21,17 +21,20 @@ export function useOllamaStream(): UseOllamaStreamReturn {
     async (
       model: string,
       messages: Array<{ role: string; content: string }>,
-      onToken: (token: string) => void,
+      onContent: (fullContent: string) => void,
       onDone: () => void
     ) => {
       const server = useServerStore.getState().getActiveServer();
       if (!server) {
         setError('No active server configured');
+        onDone();
         return;
       }
 
       setStreaming(true);
       setError(null);
+
+      let fullContent = '';
 
       try {
         const client = createClient(server.url, server.apiKey);
@@ -44,17 +47,12 @@ export function useOllamaStream(): UseOllamaStreamReturn {
           stream: true,
         });
 
-        let fullContent = '';
-
         for await (const chunk of stream) {
           if (chunk.message?.content) {
             fullContent += chunk.message.content;
-            onToken(fullContent);
+            onContent(fullContent);
           }
-
-          if (chunk.done) {
-            break;
-          }
+          if (chunk.done) break;
         }
 
         setStreaming(false);

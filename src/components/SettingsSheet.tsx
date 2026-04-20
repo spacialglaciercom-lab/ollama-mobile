@@ -1,0 +1,329 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
+import { useServerStore, Server } from '../store/useServerStore';
+import { pingServer } from '../api/ollamaClient';
+
+interface SettingsSheetProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
+  const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
+    useServerStore();
+  const [showForm, setShowForm] = useState(false);
+  const [editingServer, setEditingServer] = useState<Server | null>(null);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [pinging, setPinging] = useState<string | null>(null);
+  const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+
+  const openAdd = () => {
+    setEditingServer(null);
+    setName('');
+    setUrl('');
+    setApiKey('');
+    setShowForm(true);
+  };
+
+  const openEdit = (server: Server) => {
+    setEditingServer(server);
+    setName(server.name);
+    setUrl(server.url);
+    setApiKey(server.apiKey ?? '');
+    setShowForm(true);
+  };
+
+  const handleSave = () => {
+    if (!name.trim() || !url.trim()) return;
+    if (editingServer) {
+      updateServer(editingServer.id, {
+        name: name.trim(),
+        url: url.trim(),
+        apiKey: apiKey.trim() || undefined,
+        isCloud: url.trim().includes('ollama.com'),
+      });
+    } else {
+      addServer({
+        name: name.trim(),
+        url: url.trim(),
+        apiKey: apiKey.trim() || undefined,
+        isCloud: url.trim().includes('ollama.com'),
+      });
+    }
+    setShowForm(false);
+  };
+
+  const handlePing = async (server: Server) => {
+    setPinging(server.id);
+    setPingResult(null);
+    const ok = await pingServer(server.url, server.apiKey);
+    setPinging(null);
+    setPingResult({ id: server.id, ok });
+  };
+
+  const handleDelete = (server: Server) => {
+    if (server.id === 'ollama-cloud') return;
+    removeServer(server.id);
+  };
+
+  const renderServer = ({ item }: { item: Server }) => (
+    <TouchableOpacity
+      style={[
+        styles.serverRow,
+        item.id === activeServerId && styles.serverRowActive,
+      ]}
+      onPress={() => setActive(item.id)}
+      onLongPress={() => openEdit(item)}
+      activeOpacity={0.6}
+    >
+      <View style={styles.serverDotContainer}>
+        <View
+          style={[
+            styles.serverDot,
+            { backgroundColor: pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158' },
+          ]}
+        />
+      </View>
+      <View style={styles.serverInfo}>
+        <View style={styles.serverNameRow}>
+          <Text style={styles.serverName}>{item.name}</Text>
+          {item.isCloud && <Text style={styles.cloudBadge}>Cloud</Text>}
+        </View>
+        <Text style={styles.serverUrl} numberOfLines={1}>{item.url}</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.pingBtn}
+        onPress={() => handlePing(item)}
+      >
+        <Text style={styles.pingText}>
+          {pinging === item.id ? '...' : 'Ping'}
+        </Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={styles.scrim}>
+        <TouchableOpacity style={styles.scrimTouch} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.handle}>
+            <View style={styles.handleBar} />
+          </View>
+          <View style={styles.sheetNav}>
+            <Text style={styles.sheetTitle}>Settings</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.sheetDone}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          {!showForm ? (
+            <>
+              <View style={styles.sectionLabelWrap}>
+                <Text style={styles.sectionLabel}>SERVERS</Text>
+              </View>
+
+              <FlatList
+                data={servers}
+                keyExtractor={(item) => item.id}
+                renderItem={renderServer}
+                contentContainerStyle={styles.serverList}
+              />
+
+              <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
+                <Text style={styles.addBtnText}>+ Add Server</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.form}>
+              <Text style={styles.formTitle}>
+                {editingServer ? 'Edit Server' : 'Add Server'}
+              </Text>
+
+              <View style={styles.formSection}>
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>URL</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={url}
+                    onChangeText={setUrl}
+                    placeholder="http://192.168.1.x:11434"
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                  />
+                </View>
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>
+                    API KEY <Text style={styles.fieldLabelOpt}>optional</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={apiKey}
+                    onChangeText={setApiKey}
+                    placeholder="••••••••"
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.connectBtn} onPress={handleSave}>
+                <Text style={styles.connectBtnText}>
+                  {editingServer ? 'Save' : 'Add Server'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setShowForm(false)}>
+                <Text style={styles.cancelLink}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  scrim: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  scrimTouch: { flex: 1 },
+  sheet: {
+    backgroundColor: '#1c1c1e',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '82%',
+  },
+  handle: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#3a3a3c',
+  },
+  sheetNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(84,84,88,0.65)',
+  },
+  sheetTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  sheetDone: { color: '#0a84ff', fontSize: 17 },
+  sectionLabelWrap: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6 },
+  sectionLabel: {
+    fontSize: 11,
+    color: 'rgba(235,235,245,0.3)',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  serverList: { paddingHorizontal: 16, paddingBottom: 12 },
+  serverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    gap: 12,
+  },
+  serverRowActive: {
+    borderWidth: 1,
+    borderColor: '#30d158',
+  },
+  serverDotContainer: { width: 20, alignItems: 'center' },
+  serverDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#30d158',
+  },
+  serverInfo: { flex: 1 },
+  serverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  serverName: { color: '#fff', fontSize: 17 },
+  cloudBadge: {
+    color: '#30d158',
+    fontSize: 11,
+    fontWeight: '600',
+    backgroundColor: 'rgba(48,209,88,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  serverUrl: { color: 'rgba(235,235,245,0.3)', fontSize: 13, marginTop: 2 },
+  pingBtn: {
+    backgroundColor: '#2c2c2e',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  pingText: { color: 'rgba(235,235,245,0.8)', fontSize: 13 },
+  addBtn: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: '#30d158',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  addBtnText: { color: '#000', fontSize: 17, fontWeight: '600' },
+  form: { padding: 20 },
+  formTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 20 },
+  formSection: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  formGroup: { padding: 14 },
+  fieldLabel: {
+    fontSize: 11,
+    color: 'rgba(235,235,245,0.3)',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  fieldLabelOpt: { textTransform: 'none', color: 'rgba(235,235,245,0.18)' },
+  fieldInput: {
+    fontSize: 17,
+    color: '#fff',
+    padding: 0,
+  },
+  formSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(84,84,88,0.65)',
+    marginHorizontal: 14,
+  },
+  connectBtn: {
+    backgroundColor: '#30d158',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  connectBtnText: { color: '#000', fontSize: 17, fontWeight: '600' },
+  cancelLink: { color: '#0a84ff', fontSize: 17, textAlign: 'center', marginTop: 16 },
+});

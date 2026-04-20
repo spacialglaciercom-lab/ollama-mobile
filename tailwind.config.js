@@ -10,19 +10,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          500: '#8B5CF6',
-          600: '#7C3AED',
-          700: '#6D28D9',
-        },
-        background: {
-          DEFAULT: '#0a0a0a',
-          paper: '#1a1a1a',
-          card: '#2a2a2a',
-        },
-        border: {
-          DEFAULT: '#3a3a3a',
-        },
+        accent: '#30d158',
+        blue: '#0a84ff',
+        danger: '#ff453a',
+        bg: '#000000',
+        surface: '#1c1c1e',
+        surface2: '#2c2c2e',
+        surface3: '#3a3a3c',
+        sep: 'rgba(84,84,88,0.65)',
+        userBubble: '#1a3a5c',
       },
     },
   },
