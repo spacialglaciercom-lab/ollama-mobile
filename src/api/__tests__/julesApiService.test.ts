@@ -11,10 +11,18 @@ global.fetch = jest.fn();
 
 // Helper to mock fetch responses
 const mockFetchResponse = (ok: boolean, status: number, jsonData: any = {}) => {
+  const statusTexts: Record<number, string> = {
+    200: 'OK',
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not Found',
+    500: 'Internal Server Error',
+  };
   (global.fetch as jest.Mock).mockResolvedValueOnce({
     ok,
     status,
-    statusText: status.toString(),
+    statusText: statusTexts[status] || 'Unknown',
     json: jest.fn().mockResolvedValueOnce(jsonData),
   });
 };

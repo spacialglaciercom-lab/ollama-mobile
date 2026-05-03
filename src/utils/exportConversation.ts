@@ -15,12 +15,10 @@ export async function exportConversationAsMarkdown(
   markdown += `**Model:** ${model}\n\n`;
   markdown += `---\n\n`;
 
-  // Add system prompt if exists
   if (conversation.systemPrompt) {
     markdown += `**System Prompt:**\n\n${conversation.systemPrompt}\n\n---\n\n`;
   }
 
-  // Add messages
   for (const msg of messages) {
     if (msg.role === 'system') continue;
 
@@ -34,12 +32,11 @@ export async function exportConversationAsMarkdown(
     markdown += `${msg.content}\n\n`;
   }
 
-  // Write to file and share
   const filename = `${conversation.title.replace(/[^a-z0-9]/gi, '_')}_${date}.md`;
-  const fileUri = `${FileSystem.documentDirectory}${filename}`;
+  const fileUri = `${(FileSystem as any).documentDirectory}${filename}`;
   
   await FileSystem.writeAsStringAsync(fileUri, markdown, {
-    encoding: FileSystem.EncodingType.UTF8,
+    encoding: (FileSystem as any).EncodingType.UTF8,
   });
 
   await Sharing.shareAsync(fileUri, {

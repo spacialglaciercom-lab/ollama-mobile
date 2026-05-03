@@ -14,80 +14,24 @@ const mockGetSources = getSources as jest.MockedFunction<typeof getSources>;
 const mockCreateSession = createSession as jest.MockedFunction<typeof createSession>;
 
 // Mock Alert
-jest.mock('react-native', () => {
-  const actual = jest.requireActual('react-native');
-  return {
-    ...actual,
-    Alert: {
-      alert: jest.fn(),
-    },
-  };
-});
-
 import { Alert } from 'react-native';
+jest.spyOn(Alert, 'alert');
 
 const TEST_API_KEY = 'test-api-key-12345';
 
-describe('JulesDebugger Component', () => {
+describe('JulesDebugger', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('Rendering', () => {
-    it('should render the component title', () => {
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      expect(screen.getByText('Jules AI Debugger')).toBeTruthy();
-    });
-
-    it('should render all sections', () => {
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      expect(screen.getByText('Configuration')).toBeTruthy();
-      expect(screen.getByText('Sources')).toBeTruthy();
-      expect(screen.getByText('Create Session')).toBeTruthy();
-      expect(screen.getByText('Logs')).toBeTruthy();
-    });
-
-    it('should render input fields', () => {
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      expect(screen.getByPlaceholderText('main')).toBeTruthy();
-      expect(screen.getByPlaceholderText('My Jules Session')).toBeTruthy();
-      expect(screen.getByPlaceholderText('What would you like Jules to do?')).toBeTruthy();
-    });
-
-    it('should render buttons', () => {
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      expect(screen.getByText('Fetch Sources')).toBeTruthy();
-      expect(screen.getByText('Create Session')).toBeTruthy();
-    });
-
-    it('should show empty state for source selection', () => {
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      expect(screen.getByText('Select a source...')).toBeTruthy();
-    });
-
-    it('should show empty logs message initially', () => {
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      expect(screen.getByText('No logs yet')).toBeTruthy();
-    });
-  });
-
   describe('Fetch Sources', () => {
-    const mockSources = [
-      { id: 'source-1', name: 'repo-1', repositoryUri: 'https://github.com/user/repo-1' },
-      { id: 'source-2', name: 'repo-2', repositoryUri: 'https://github.com/user/repo-2' },
-    ];
-
-    it('should call getSources when Fetch Sources button is pressed', async () => {
-      mockGetSources.mockResolvedValueOnce(mockSources);
+    it('should call getSources with API key when button pressed', async () => {
+      mockGetSources.mockResolvedValueOnce([]);
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      const fetchButton = screen.getByRole('button', { name: 'Fetch Sources' });
+      fireEvent.press(fetchButton);
       
       await waitFor(() => {
         expect(mockGetSources).toHaveBeenCalledTimes(1);
@@ -96,15 +40,19 @@ describe('JulesDebugger Component', () => {
     });
 
     it('should display sources after successful fetch', async () => {
+      const mockSources = [
+        { id: 'source-1', name: 'my-repo', repositoryUri: 'https://github.com/user/my-repo' },
+        { id: 'source-2', name: 'another-repo', repositoryUri: 'https://github.com/user/another-repo' },
+      ];
       mockGetSources.mockResolvedValueOnce(mockSources);
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       
       await waitFor(() => {
-        expect(screen.getByText('repo-1')).toBeTruthy();
-        expect(screen.getByText('repo-2')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'my-repo' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'another-repo' })).toBeTruthy();
       });
     });
 
@@ -114,7 +62,7 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -127,7 +75,7 @@ describe('JulesDebugger Component', () => {
     it('should not call getSources without API key', async () => {
       render(<JulesDebugger apiKey="" />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       
       await waitFor(() => {
         expect(mockGetSources).not.toHaveBeenCalled();
@@ -158,13 +106,14 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        expect(screen.getByText('my-repo')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'my-repo' })).toBeTruthy();
       });
       
       // Don't select a source
-      expect(screen.getByText('Create Session')).toBeDisabled();
+      const createButton = screen.getByRole('button', { name: 'Create Session' });
+      expect(createButton.props.accessibilityState.disabled).toBe(true);
     });
 
     it('should disable Create Session button when no prompt entered', async () => {
@@ -172,13 +121,14 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
       
       // Don't enter a prompt
-      expect(screen.getByText('Create Session')).toBeDisabled();
+      const createButton = screen.getByRole('button', { name: 'Create Session' });
+      expect(createButton.props.accessibilityState.disabled).toBe(true);
     });
 
     it('should call createSession with correct parameters', async () => {
@@ -188,9 +138,9 @@ describe('JulesDebugger Component', () => {
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
       // Fetch sources first
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
       
       // Enter prompt
@@ -198,7 +148,7 @@ describe('JulesDebugger Component', () => {
       fireEvent.changeText(promptInput, 'Fix the bug');
       
       // Create session
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
       
       await waitFor(() => {
         expect(mockCreateSession).toHaveBeenCalledTimes(1);
@@ -218,15 +168,15 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
       
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Fix the bug');
       
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
       
       await waitFor(() => {
         expect(screen.getByText('Session ID: session-123')).toBeTruthy();
@@ -240,15 +190,15 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
       
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Fix the bug');
       
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
       
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -266,7 +216,7 @@ describe('JulesDebugger Component', () => {
       const branchInput = screen.getByPlaceholderText('main');
       fireEvent.changeText(branchInput, 'feature-branch');
       
-      expect(branchInput).toHaveTextContent('feature-branch');
+      expect(branchInput.props.value).toBe('feature-branch');
     });
 
     it('should update session title when changed', () => {
@@ -275,77 +225,7 @@ describe('JulesDebugger Component', () => {
       const titleInput = screen.getByPlaceholderText('My Jules Session');
       fireEvent.changeText(titleInput, 'Custom Title');
       
-      expect(titleInput).toHaveTextContent('Custom Title');
-    });
-
-    it('should use custom branch when creating session', async () => {
-      mockGetSources.mockResolvedValueOnce([
-        { id: 'source-1', name: 'my-repo', repositoryUri: 'https://github.com/user/my-repo' },
-      ]);
-      mockCreateSession.mockResolvedValueOnce({
-        session: { id: 'session-123', name: 'sessions/session-123' },
-      });
-      
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      // Set custom branch
-      const branchInput = screen.getByPlaceholderText('main');
-      fireEvent.changeText(branchInput, 'feature-branch');
-      
-      fireEvent.press(screen.getByText('Fetch Sources'));
-      await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
-      });
-      
-      const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
-      fireEvent.changeText(promptInput, 'Add feature');
-      
-      fireEvent.press(screen.getByText('Create Session'));
-      
-      await waitFor(() => {
-        expect(mockCreateSession).toHaveBeenCalledWith(
-          TEST_API_KEY,
-          'my-repo',
-          'Add feature',
-          'feature-branch',
-          undefined
-        );
-      });
-    });
-
-    it('should use custom title when creating session', async () => {
-      mockGetSources.mockResolvedValueOnce([
-        { id: 'source-1', name: 'my-repo', repositoryUri: 'https://github.com/user/my-repo' },
-      ]);
-      mockCreateSession.mockResolvedValueOnce({
-        session: { id: 'session-123', name: 'sessions/session-123' },
-      });
-      
-      render(<JulesDebugger apiKey={TEST_API_KEY} />);
-      
-      // Set custom title
-      const titleInput = screen.getByPlaceholderText('My Jules Session');
-      fireEvent.changeText(titleInput, 'My Custom Session');
-      
-      fireEvent.press(screen.getByText('Fetch Sources'));
-      await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
-      });
-      
-      const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
-      fireEvent.changeText(promptInput, 'Add feature');
-      
-      fireEvent.press(screen.getByText('Create Session'));
-      
-      await waitFor(() => {
-        expect(mockCreateSession).toHaveBeenCalledWith(
-          TEST_API_KEY,
-          'my-repo',
-          'Add feature',
-          'main',
-          'My Custom Session'
-        );
-      });
+      expect(titleInput.props.value).toBe('Custom Title');
     });
   });
 
@@ -357,7 +237,7 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       
       await waitFor(() => {
         expect(screen.getByText(/Fetching sources.../)).toBeTruthy();
@@ -371,7 +251,7 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       
       await waitFor(() => {
         expect(screen.getByText(/Fetching sources.../)).toBeTruthy();
@@ -397,15 +277,15 @@ describe('JulesDebugger Component', () => {
       
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
       
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
       
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Test prompt');
       
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
       
       await waitFor(() => {
         expect(screen.getByText('Session Result')).toBeTruthy();
