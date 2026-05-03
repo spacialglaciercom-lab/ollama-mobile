@@ -48,196 +48,116 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
+  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
-  const renderItem = useCallback(
-    ({ item }: { item: StoredMessage }) => {
-      if (item.id === 'streaming') {
-        return <StreamingBubble content={item.content} />;
-      }
-      return (
-        <MessageBubble
-          role={item.role}
-          content={item.content}
-          selected={selectedMessage?.id === item.id}
-          onLongPress={() => setSelectedMessage(item)}
-        />
-      );
-    },
-    [selectedMessage?.id]
-  );
-
-  const keyExtractor = useCallback((item: StoredMessage) => item.id, []);
   const flatListRef = useRef<FlatList>(null);
-  const conversationRef = useRef<string | null>(null);
-  const streamingContentRef = useRef('');
 
-  useEffect(() => {
-    streamingContentRef.current = streamingContent;
-  }, [streamingContent]);
-
+  // Initialize chat
   useEffect(() => {
     if (id === 'new') {
-      const model = paramModel || selectedModel || 'gpt-oss:120b';
-      createConversation('New Chat', model).then((conv) => {
-        conversationRef.current = conv.id;
-        router.replace(`/chat/${conv.id}`);
-      });
+      setActiveConversation(null);
+      setLocalMessages([]);
+      if (paramModel) selectModel(paramModel);
     } else if (id) {
-      conversationRef.current = id;
       setActiveConversation(id);
-      loadMessages(id).then(() => {
-        const conv = conversations.find((c) => c.id === id);
-        if (conv) {
-          selectModel(conv.model);
-          if (conv.systemPrompt) {
-            setSystemPromptText(conv.systemPrompt);
-            setShowSystemPrompt(true);
-          }
-        }
-      });
+      loadMessages(id);
     }
-  }, [
-    id,
-    conversations,
-    createConversation,
-    loadMessages,
-    paramModel,
-    selectModel,
-    selectedModel,
-    setActiveConversation,
-  ]);
+  }, [id, paramModel, setActiveConversation, loadMessages, selectModel]);
 
+  // Sync messages from store to local
   useEffect(() => {
-    setLocalMessages(messages);
-  }, [messages]);
-
-  useEffect(() => {
-    if (localMessages.length > 0 || streamingContent) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    if (id !== 'new') {
+      setLocalMessages(messages);
     }
-  }, [localMessages.length, streamingContent]);
+  }, [messages, id]);
 
-  const handleSend = useCallback(async () => {
-    const text = inputText.trim();
-    if (!text || !conversationRef.current || !selectedModel || streaming) return;
+  const handleSend = async () => {
+    if (!inputText.trim() || streaming) return;
 
+    const userText = inputText.trim();
     setInputText('');
+    setStreamingContent('');
     setTokenStats(null);
 
-    const convId = conversationRef.current;
+    let currentId = id === 'new' ? '' : id;
 
-    // Add system prompt message if set
-    if (showSystemPrompt && systemPromptText.trim()) {
-      await addMessage(convId, 'system', systemPromptText.trim());
+    // Create conversation if it's new
+    if (id === 'new' && !currentId) {
+      const title = userText.length > 30 ? userText.substring(0, 30) + '...' : userText;
+      const conv = await createConversation(title, selectedModel || 'llama3', systemPromptText);
+      currentId = conv.id;
+      // Change URL to the new ID without triggering a re-render if possible
+      router.setParams({ id: currentId });
     }
 
     // Add user message
-    const userMsg = await addMessage(convId, 'user', text);
-    setLocalMessages((prev) => [...prev, userMsg]);
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    // Build messages array for API
-    const apiMessages: { role: string; content: string }[] = [];
-    if (showSystemPrompt && systemPromptText.trim()) {
-      apiMessages.push({ role: 'system', content: systemPromptText.trim() });
+    const userMsg = await addMessage(currentId, 'user', userText);
+    if (id === 'new') {
+      setLocalMessages([userMsg]);
     }
-    localMessages
-      .filter((m) => m.role !== 'system')
-      .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: m.role, content: text });
 
-    setStreamingContent('');
+    // Prepare message history for API
+    const history = localMessages.map((m) => ({ role: m.role, content: m.content }));
+    history.push({ role: 'user', content: userText });
+    if (systemPromptText && !history.find((m) => m.role === 'system')) {
+      history.unshift({ role: 'system', content: systemPromptText });
+    }
 
+    // Scroll to bottom
+    setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+
+    // Call API
     await sendMessage(
-      selectedModel,
-      apiMessages,
-      (fullContent) => {
-        setStreamingContent(fullContent);
+      selectedModel || 'llama3',
+      history,
+      (content) => {
+        setStreamingContent(content);
+        flatListRef.current?.scrollToEnd();
       },
       async () => {
-        const finalContent = streamingContentRef.current;
-        setStreamingContent('');
-        if (finalContent) {
-          const assistantMsg = await addMessage(convId, 'assistant', finalContent);
-          setLocalMessages((prev) => [...prev, assistantMsg]);
+        // Done streaming, save assistant message
+        if (streamingContent) {
+          await addMessage(currentId, 'assistant', streamingContent);
+          setStreamingContent('');
         }
       }
     );
+  };
 
-    // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
-    if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
-    }
-  }, [
-    inputText,
-    selectedModel,
-    localMessages,
-    streaming,
-    addMessage,
-    sendMessage,
-    systemPromptText,
-    showSystemPrompt,
-    updateConversationTitle,
-  ]);
-
-  const allMessages = [
-    ...localMessages,
-    ...(streamingContent
-      ? [
-          {
-            id: 'streaming',
-            conversationId: conversationRef.current ?? '',
-            role: 'assistant' as const,
-            content: streamingContent,
-            createdAt: Date.now(),
-          },
-        ]
-      : []),
-  ];
-
-  const currentModel = selectedModel || paramModel || 'Select model';
+  const allMessages = [...localMessages];
+  if (streamingContent) {
+    allMessages.push({
+      id: 'streaming',
+      conversationId: 'current',
+      role: 'assistant',
+      content: streamingContent,
+      createdAt: Date.now(),
+    });
+  }
 
   return (
     <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
     >
       <StatusBar style="light" />
 
-      {/* Nav Bar */}
+      {/* NavBar */}
       <View style={styles.navBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.navBtn}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <Text style={styles.navBtnText}>‹ Back</Text>
+        <TouchableOpacity style={styles.navBtn} onPress={() => router.back()}>
+          <Text style={styles.navBtnText}>Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.modelPill}
-          onPress={() => setShowModelPicker(true)}
-          accessibilityLabel={`Current model: ${currentModel}. Tap to change.`}
-          accessibilityRole="button"
-        >
+        <TouchableOpacity style={styles.modelPill} onPress={() => setShowModelPicker(true)}>
           <Text style={styles.modelPillText} numberOfLines={1}>
-            {currentModel}
+            {selectedModel || 'Select Model'}
           </Text>
           <Text style={styles.modelPillCaret}>▼</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navBtn}
-          onPress={() => setShowMenu(!showMenu)}
-          accessibilityLabel="More options"
-          accessibilityRole="button"
-        >
+        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(true)}>
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
@@ -254,16 +174,6 @@ export default function ChatScreen() {
               }}
             >
               <Text style={styles.menuLabel}>Settings</Text>
-            </TouchableOpacity>
-            <View style={styles.menuSep} />
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                setShowMenu(false);
-                if (activeServer) fetchModels();
-              }}
-            >
-              <Text style={styles.menuLabelAccent}>Refresh Models</Text>
             </TouchableOpacity>
             <View style={styles.menuSep} />
             <TouchableOpacity

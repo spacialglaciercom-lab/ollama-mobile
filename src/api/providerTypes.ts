@@ -1,6 +1,6 @@
 /**
  * Unified Provider Types
- * Type definitions for all AI providers (Jules, Ollama Cloud, Local Ollama)
+ * Type definitions for all AI providers (Jules, Ollama Cloud, Local Ollama, ZeroClaw)
  */
 
 import { JulesSource } from './types';
@@ -9,7 +9,7 @@ import { JulesSource } from './types';
 // Provider Type Identifiers
 // ============================================
 
-export type ProviderType = 'jules' | 'ollama-cloud' | 'ollama-local';
+export type ProviderType = 'jules' | 'ollama-cloud' | 'ollama-local' | 'zeroclaw';
 
 // ============================================
 // Base Provider Configuration
@@ -50,6 +50,16 @@ export interface OllamaLocalProviderConfig extends BaseProviderConfig {
 }
 
 /**
+ * ZeroClaw provider configuration
+ */
+export interface ZeroClawProviderConfig extends BaseProviderConfig {
+  type: 'zeroclaw';
+  url: string; // e.g., 'http://localhost:8080'
+  apiKey?: string;
+  defaultModel?: string;
+}
+
+/**
  * Jules provider configuration (imported from julesTypes)
  * Kept separate for Jules-specific fields
  */
@@ -66,6 +76,7 @@ export interface JulesProviderConfig extends BaseProviderConfig {
 export type ProviderConfig = 
   | OllamaCloudProviderConfig 
   | OllamaLocalProviderConfig 
+  | ZeroClawProviderConfig
   | JulesProviderConfig;
 
 // ============================================
@@ -94,7 +105,7 @@ export interface ProviderStatus {
 export interface ProviderFactoryConfig {
   type: ProviderType;
   name?: string;
-  url?: string; // For Ollama providers
+  url?: string; // For Ollama/ZeroClaw providers
   apiKey?: string;
   defaultModel?: string;
   defaultSourceId?: string; // For Jules
@@ -129,6 +140,13 @@ export interface OllamaLocalProviderInstance extends BaseProviderInstance<Ollama
 }
 
 /**
+ * ZeroClaw provider instance
+ */
+export interface ZeroClawProviderInstance extends BaseProviderInstance<ZeroClawProviderConfig> {
+  chat: (messages: any[]) => Promise<any>;
+}
+
+/**
  * Jules provider instance
  */
 export interface JulesProviderInstance extends BaseProviderInstance<JulesProviderConfig> {
@@ -147,6 +165,7 @@ export interface JulesProviderInstance extends BaseProviderInstance<JulesProvide
 export type AnyProviderInstance = 
   | OllamaCloudProviderInstance 
   | OllamaLocalProviderInstance 
+  | ZeroClawProviderInstance
   | JulesProviderInstance;
 
 // ============================================
@@ -197,6 +216,17 @@ export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<OllamaLocalProviderConfig, 'id'
 };
 
 /**
+ * Default ZeroClaw configuration
+ */
+export const DEFAULT_ZEROCLAW_PROVIDER: Omit<ZeroClawProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+  name: 'ZeroClaw',
+  type: 'zeroclaw',
+  url: 'http://localhost:8080',
+  isConfigured: false,
+  isConnected: false,
+};
+
+/**
  * Default Jules configuration
  */
 export const DEFAULT_JULES_PROVIDER: Omit<JulesProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -225,6 +255,13 @@ export function isOllamaLocalProvider(config: ProviderConfig): config is OllamaL
 }
 
 /**
+ * Check if a provider config is ZeroClaw
+ */
+export function isZeroClawProvider(config: ProviderConfig): config is ZeroClawProviderConfig {
+  return config.type === 'zeroclaw';
+}
+
+/**
  * Check if a provider config is Jules
  */
 export function isJulesProvider(config: ProviderConfig): config is JulesProviderConfig {
@@ -243,6 +280,13 @@ export function isOllamaCloudInstance(instance: AnyProviderInstance): instance i
  */
 export function isOllamaLocalInstance(instance: AnyProviderInstance): instance is OllamaLocalProviderInstance {
   return instance.config.type === 'ollama-local';
+}
+
+/**
+ * Check if a provider instance is ZeroClaw
+ */
+export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+  return instance.config.type === 'zeroclaw';
 }
 
 /**
