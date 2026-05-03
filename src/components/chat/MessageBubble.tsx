@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
@@ -6,9 +7,16 @@ interface MessageBubbleProps {
   content: string;
   selected?: boolean;
   onLongPress?: () => void;
+  isStreaming?: boolean;
 }
 
-export function MessageBubble({ role, content, selected, onLongPress }: MessageBubbleProps) {
+export function MessageBubble({
+  role,
+  content,
+  selected,
+  onLongPress,
+  isStreaming,
+}: MessageBubbleProps) {
   if (role === 'system') {
     return (
       <View style={styles.systemContainer}>
@@ -19,11 +27,19 @@ export function MessageBubble({ role, content, selected, onLongPress }: MessageB
 
   const isUser = role === 'user';
 
+  const handleLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onLongPress?.();
+  };
+
   return (
     <TouchableOpacity
-      onLongPress={onLongPress}
+      onLongPress={handleLongPress}
       activeOpacity={0.8}
       delayLongPress={300}
+      accessibilityRole="button"
+      accessibilityLabel={`Message from ${role}: ${content}`}
+      accessibilityHint="Long press for more actions"
     >
       <View
         style={[
@@ -35,6 +51,7 @@ export function MessageBubble({ role, content, selected, onLongPress }: MessageB
         <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
           {content}
         </Text>
+        {isStreaming && role === 'assistant' && <Text style={styles.cursor}>▌</Text>}
       </View>
     </TouchableOpacity>
   );
@@ -77,4 +94,5 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(48,209,88,0.2)',
   },
   systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic' },
+  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
 });

@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
@@ -11,17 +14,16 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+
+import { StoredMessage } from '../../src/api/types';
+import { MessageActionSheet } from '../../src/components/MessageActionSheet';
+import { MessageBubble } from '../../src/components/chat/MessageBubble';
+import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
+import { SettingsSheet } from '../../src/components/SettingsSheet';
+import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
 import { useServerStore } from '../../src/store/useServerStore';
-import { useOllamaStream } from '../../src/hooks/useOllamaStream';
-import { StoredMessage } from '../../src/api/types';
-import { SettingsSheet } from '../../src/components/SettingsSheet';
-import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
-import { ModelPullSheet } from '../../src/components/ModelPullSheet';
-import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
@@ -34,7 +36,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { models, selectedModel, selectModel, fetchModels } = useModelStore();
+  const { selectedModel, selectModel, fetchModels } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -77,7 +79,7 @@ export default function ChatScreen() {
         }
       });
     }
-  }, [id]);
+  }, [id, conversations, createConversation, loadMessages, paramModel, selectModel, selectedModel, setActiveConversation]);
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -107,6 +109,8 @@ export default function ChatScreen() {
     const userMsg = await addMessage(convId, 'user', text);
     setLocalMessages((prev) => [...prev, userMsg]);
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     // Build messages array for API
     const apiMessages: Array<{ role: string; content: string }> = [];
     if (showSystemPrompt && systemPromptText.trim()) {
@@ -132,7 +136,7 @@ export default function ChatScreen() {
           const assistantMsg = await addMessage(convId, 'assistant', finalContent);
           setLocalMessages((prev) => [...prev, assistantMsg]);
         }
-      }
+      },
     );
 
     // Auto-title from first user message
@@ -141,7 +145,17 @@ export default function ChatScreen() {
       const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
       updateConversationTitle(convId, title);
     }
-  }, [inputText, selectedModel, localMessages, streaming, addMessage, sendMessage, systemPromptText, showSystemPrompt]);
+  }, [
+    inputText,
+    selectedModel,
+    localMessages,
+    streaming,
+    addMessage,
+    sendMessage,
+    systemPromptText,
+    showSystemPrompt,
+    updateConversationTitle,
+  ]);
 
   const allMessages = [
     ...localMessages,
@@ -173,20 +187,14 @@ export default function ChatScreen() {
           <Text style={styles.navBtnText}>‹ Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.modelPill}
-          onPress={() => setShowModelPicker(true)}
-        >
+        <TouchableOpacity style={styles.modelPill} onPress={() => setShowModelPicker(true)}>
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
           <Text style={styles.modelPillCaret}>▾</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navBtn}
-          onPress={() => setShowMenu(!showMenu)}
-        >
+        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(!showMenu)}>
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
@@ -247,41 +255,13 @@ export default function ChatScreen() {
         data={allMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity
+          <MessageBubble
+            role={item.role}
+            content={item.content}
+            selected={selectedMessage?.id === item.id}
             onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
-            delayLongPress={300}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.bubbleWrap,
-                item.role === 'user'
-                  ? styles.bubbleWrapUser
-                  : item.role === 'system'
-                    ? styles.bubbleWrapSystem
-                    : styles.bubbleWrapAssistant,
-                selectedMessage?.id === item.id && styles.bubbleWrapSelected,
-              ]}
-            >
-              <View
-                style={[
-                  styles.bubble,
-                  item.role === 'user'
-                    ? styles.bubbleUser
-                    : item.role === 'system'
-                      ? styles.bubbleSystem
-                      : styles.bubbleAssistant,
-                ]}
-              >
-                <Text style={item.role === 'system' ? styles.bubbleSystemText : styles.bubbleText}>
-                  {item.content}
-                </Text>
-                {item.id === 'streaming' && streaming && (
-                  <Text style={styles.cursor}>▌</Text>
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
+            isStreaming={item.id === 'streaming' && streaming}
+          />
         )}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
@@ -289,9 +269,7 @@ export default function ChatScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Start a conversation</Text>
-            <Text style={styles.emptySub}>
-              Send a message to begin chatting
-            </Text>
+            <Text style={styles.emptySub}>Send a message to begin chatting</Text>
           </View>
         }
       />
@@ -335,12 +313,13 @@ export default function ChatScreen() {
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              inputText.trim() && !streaming
-                ? styles.sendBtnActive
-                : styles.sendBtnInactive,
+              inputText.trim() && !streaming ? styles.sendBtnActive : styles.sendBtnInactive,
             ]}
             onPress={handleSend}
             disabled={!inputText.trim() || streaming}
+            accessibilityLabel="Send message"
+            accessibilityRole="button"
+            accessibilityHint="Sends your message to the AI"
           >
             <Text style={styles.sendBtnIcon}>↑</Text>
           </TouchableOpacity>
@@ -368,10 +347,7 @@ export default function ChatScreen() {
       </View>
 
       {/* Model Picker Sheet */}
-      <ModelPickerSheet
-        visible={showModelPicker}
-        onClose={() => setShowModelPicker(false)}
-      />
+      <ModelPickerSheet visible={showModelPicker} onClose={() => setShowModelPicker(false)} />
 
       {/* Settings Sheet */}
       <SettingsSheet visible={showSettings} onClose={() => setShowSettings(false)} />
@@ -385,9 +361,7 @@ export default function ChatScreen() {
         onRegenerate={() => {
           setSelectedMessage(null);
           // Re-send last user message
-          const lastUserMsg = [...localMessages]
-            .reverse()
-            .find((m) => m.role === 'user');
+          const lastUserMsg = [...localMessages].reverse().find((m) => m.role === 'user');
           if (lastUserMsg) {
             setInputText(lastUserMsg.content);
           }
