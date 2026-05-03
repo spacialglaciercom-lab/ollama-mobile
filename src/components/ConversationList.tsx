@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -34,17 +34,14 @@ export function ConversationList({
     id: '',
     title: '',
   });
-  const { searchConversations } = useChatStore();
-
-  const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
-    return conversations.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [conversations, searchQuery]);
+  const { searchConversations, clearSearch } = useChatStore();
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
       await searchConversations(query);
+    } else {
+      await clearSearch();
     }
   };
 
@@ -120,10 +117,10 @@ export function ConversationList({
 
       {/* Conversation List */}
       <FlatList
-        data={filteredConversations}
+        data={conversations}
         keyExtractor={(item) => item.id}
         renderItem={renderChat}
-        contentContainerStyle={filteredConversations.length === 0 ? styles.emptyList : styles.list}
+        contentContainerStyle={conversations.length === 0 ? styles.emptyList : styles.list}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>
