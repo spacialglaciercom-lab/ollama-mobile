@@ -145,7 +145,7 @@ export default function ChatScreen() {
     localMessages
       .filter((m) => m.role !== 'system')
       .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: 'user', content: text });
+    apiMessages.push({ role: m.role, content: text });
 
     setStreamingContent('');
 
@@ -220,15 +220,15 @@ export default function ChatScreen() {
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
-          <Text style={styles.modelPillCaret}>▾</Text>
+          <Text style={styles.modelPillCaret}>▼</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(!showMenu)}>
+        <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.navBtn}>
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Popover Menu */}
+      {/* Menu Popover */}
       {showMenu && (
         <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
           <View style={styles.menuPopover}>
