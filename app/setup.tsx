@@ -51,19 +51,19 @@ export default function SetupScreen() {
         if (key) updateServer(existing.id, { apiKey: key });
         setActive(existing.id);
       } else {
-        const newServer = addServer({
+        addServer({
           name: isCloud ? 'Ollama Cloud' : 'My Server',
           url: url.trim(),
           apiKey: key,
           isCloud,
+          type: 'ollama',
         });
       }
 
       // Try to fetch models
       try {
-        const { createClient } = require('../src/api/ollamaClient');
-        const client = createClient(url.trim(), key);
-        const list = await client.list();
+        const { fetchModels: apiFetchModels } = require('../src/api/ollamaClient');
+        const list = await apiFetchModels(url.trim(), key);
         setModelCount(list.models.length);
         setStatus('success');
 

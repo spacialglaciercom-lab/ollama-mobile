@@ -39,6 +39,27 @@ export const useModelStore = create<ModelStore>((set) => ({
 
     set({ loading: true, error: null });
 
+    if (server.type === 'zeroclaw') {
+      set({
+        models: [{
+          name: 'ZeroClaw Agent',
+          size: 0,
+          digest: 'zeroclaw',
+          modified_at: new Date().toISOString(),
+          model: 'zeroclaw',
+          format: 'acp',
+          family: 'zeroclaw',
+          families: ['zeroclaw'],
+          parameter_size: 'unknown',
+          quantization_level: 'none'
+        }] as any,
+        selectedModel: 'ZeroClaw Agent',
+        loading: false,
+        error: null,
+      });
+      return;
+    }
+
     try {
       const response = await apiFetchModels(server.url, server.apiKey);
       set({

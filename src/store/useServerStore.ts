@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { MMKV } from 'react-native-mmkv';
+import { ServerType } from '../api/types';
 
 const storage = new MMKV();
 
@@ -10,6 +11,7 @@ export interface Server {
   url: string;
   apiKey?: string;
   isCloud: boolean;
+  type: ServerType;
 }
 
 const OLLAMA_CLOUD_DEFAULT: Server = {
@@ -18,6 +20,7 @@ const OLLAMA_CLOUD_DEFAULT: Server = {
   url: 'https://ollama.com',
   apiKey: undefined,
   isCloud: true,
+  type: 'ollama',
 };
 
 interface ServerStore {
