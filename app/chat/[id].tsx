@@ -17,7 +17,6 @@ import {
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
-import { ModelPullSheet } from '../../src/components/ModelPullSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
 import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
@@ -37,7 +36,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { models, selectedModel, selectModel, fetchModels } = useModelStore();
+  const { selectedModel, selectModel, fetchModels } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -99,7 +98,16 @@ export default function ChatScreen() {
         }
       });
     }
-  }, [id]);
+  }, [
+    id,
+    paramModel,
+    selectedModel,
+    createConversation,
+    setActiveConversation,
+    loadMessages,
+    conversations,
+    selectModel,
+  ]);
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -172,6 +180,7 @@ export default function ChatScreen() {
     sendMessage,
     systemPromptText,
     showSystemPrompt,
+    updateConversationTitle,
   ]);
 
   const allMessages = useMemo(
