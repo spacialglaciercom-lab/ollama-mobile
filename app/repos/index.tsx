@@ -1,17 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-} from 'react-native';
 import { router } from 'expo-router';
-import { useRepoStore } from '../../src/store/useRepoStore';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+
 import { deleteRepo, getStatus, GitStatusResult } from '../../src/api/gitClient';
-import { RepoCloneSheet } from '../../src/components/RepoCloneSheet';
 import { GitStatusChip } from '../../src/components/GitStatusChip';
+import { RepoCloneSheet } from '../../src/components/RepoCloneSheet';
+import { useRepoStore } from '../../src/store/useRepoStore';
 
 export default function ReposScreen() {
   const { repos, loadRepos, removeRepo, pat, loadPat, loadAuthor } = useRepoStore();
@@ -41,22 +35,26 @@ export default function ReposScreen() {
   };
 
   const handleDeleteRepo = (id: string) => {
-    Alert.alert('Delete Repository', 'Remove this repo from the app? This deletes the local clone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteRepo(id);
-          await removeRepo(id);
-          setStatusMap((prev) => {
-            const next = { ...prev };
-            delete next[id];
-            return next;
-          });
+    Alert.alert(
+      'Delete Repository',
+      'Remove this repo from the app? This deletes the local clone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteRepo(id);
+            await removeRepo(id);
+            setStatusMap((prev) => {
+              const next = { ...prev };
+              delete next[id];
+              return next;
+            });
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleCloned = (repoId: string) => {
@@ -78,8 +76,12 @@ export default function ReposScreen() {
       activeOpacity={0.6}
     >
       <View style={styles.repoCardContent}>
-        <Text style={styles.repoName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.repoUrl} numberOfLines={1}>{item.url}</Text>
+        <Text style={styles.repoName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.repoUrl} numberOfLines={1}>
+          {item.url}
+        </Text>
         <View style={styles.repoMeta}>
           <Text style={styles.repoBranch}>{item.branch}</Text>
           <GitStatusChip status={statusMap[item.id] ?? null} />

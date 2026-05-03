@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { fetchModels as apiFetchModels } from '../api/ollamaClient';
+
 import { useServerStore } from './useServerStore';
+import { fetchModels as apiFetchModels } from '../api/ollamaClient';
 
 interface ModelInfo {
   name: string;
@@ -41,18 +42,20 @@ export const useModelStore = create<ModelStore>((set) => ({
 
     if (server.type === 'zeroclaw') {
       set({
-        models: [{
-          name: 'ZeroClaw Agent',
-          size: 0,
-          digest: 'zeroclaw',
-          modified_at: new Date().toISOString(),
-          model: 'zeroclaw',
-          format: 'acp',
-          family: 'zeroclaw',
-          families: ['zeroclaw'],
-          parameter_size: 'unknown',
-          quantization_level: 'none'
-        }] as any,
+        models: [
+          {
+            name: 'ZeroClaw Agent',
+            size: 0,
+            digest: 'zeroclaw',
+            modified_at: new Date().toISOString(),
+            model: 'zeroclaw',
+            format: 'acp',
+            family: 'zeroclaw',
+            families: ['zeroclaw'],
+            parameter_size: 'unknown',
+            quantization_level: 'none',
+          },
+        ] as any,
         selectedModel: 'ZeroClaw Agent',
         loading: false,
         error: null,

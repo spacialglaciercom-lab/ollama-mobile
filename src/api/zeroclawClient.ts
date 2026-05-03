@@ -13,12 +13,14 @@ export async function pingZeroClaw(baseUrl: string, apiKey?: string): Promise<bo
       ws.onopen = () => {
         clearTimeout(timeout);
         // Try to send initialize to be sure
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: 'ping',
-          method: 'initialize',
-          params: {}
-        }));
+        ws.send(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'ping',
+            method: 'initialize',
+            params: {},
+          })
+        );
       };
 
       ws.onmessage = (event) => {
@@ -84,12 +86,14 @@ export async function* streamZeroClawChat(
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'initialize',
-      params: {}
-    }));
+    ws.send(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {},
+      })
+    );
   };
 
   ws.onmessage = (event) => {
@@ -98,30 +102,34 @@ export async function* streamZeroClawChat(
 
       if (data.id === 1) {
         // Initialize success, create session
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: 2,
-          method: 'session/new',
-          params: {}
-        }));
+        ws.send(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: 2,
+            method: 'session/new',
+            params: {},
+          })
+        );
       } else if (data.id === 2) {
         // Session created, send prompt
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          id: 3,
-          method: 'session/prompt',
-          params: {
-            sessionId: data.result.sessionId,
-            prompt: lastMessage
-          }
-        }));
+        ws.send(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: 3,
+            method: 'session/prompt',
+            params: {
+              sessionId: data.result.sessionId,
+              prompt: lastMessage,
+            },
+          })
+        );
       } else if (data.method === 'session/update') {
         const update = data.params.update;
         if (update.sessionUpdate === 'agent_message_chunk') {
           push({
             model: 'zeroclaw',
             message: { role: 'assistant', content: update.content.text },
-            done: false
+            done: false,
           });
         }
       } else if (data.id === 3) {
@@ -129,7 +137,7 @@ export async function* streamZeroClawChat(
         push({
           model: 'zeroclaw',
           message: { role: 'assistant', content: '' },
-          done: true
+          done: true,
         });
         ws.close();
         finish();

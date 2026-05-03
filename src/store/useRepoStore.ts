@@ -1,12 +1,7 @@
-import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
-import {
-  getRepos,
-  insertRepo,
-  deleteRepoRecord,
-  updateRepoSynced,
-  RepoRecord,
-} from '../db/schema';
+import { create } from 'zustand';
+
+import { getRepos, insertRepo, deleteRepoRecord, updateRepoSynced, RepoRecord } from '../db/schema';
 
 const PAT_KEY = 'github-pat';
 const AUTHOR_NAME_KEY = 'git-author-name';
@@ -52,9 +47,7 @@ export const useRepoStore = create<RepoStore>()((set, get) => ({
     const now = Date.now();
     await updateRepoSynced(id, now);
     set((state) => ({
-      repos: state.repos.map((r) =>
-        r.id === id ? { ...r, lastSynced: now } : r
-      ),
+      repos: state.repos.map((r) => (r.id === id ? { ...r, lastSynced: now } : r)),
     }));
   },
 

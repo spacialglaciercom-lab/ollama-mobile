@@ -1,3 +1,4 @@
+import { useLocalSearchParams, router } from 'expo-router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -9,12 +10,20 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+
 import { readFile, writeFile } from '../../../src/api/gitClient';
 
 // ── Syntax highlighting via regex tokenization ──
 
-type TokenType = 'keyword' | 'string' | 'comment' | 'number' | 'type' | 'function' | 'operator' | 'plain';
+type TokenType =
+  | 'keyword'
+  | 'string'
+  | 'comment'
+  | 'number'
+  | 'type'
+  | 'function'
+  | 'operator'
+  | 'plain';
 
 interface Token {
   text: string;
@@ -23,30 +32,144 @@ interface Token {
 
 const KEYWORDS = new Set([
   // JS/TS
-  'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'do',
-  'switch', 'case', 'break', 'continue', 'new', 'this', 'class', 'extends', 'import',
-  'export', 'default', 'from', 'as', 'type', 'interface', 'enum', 'async', 'await',
-  'try', 'catch', 'finally', 'throw', 'typeof', 'instanceof', 'in', 'of', 'void',
-  'null', 'undefined', 'true', 'false', 'static', 'get', 'set', 'super', 'yield',
+  'const',
+  'let',
+  'var',
+  'function',
+  'return',
+  'if',
+  'else',
+  'for',
+  'while',
+  'do',
+  'switch',
+  'case',
+  'break',
+  'continue',
+  'new',
+  'this',
+  'class',
+  'extends',
+  'import',
+  'export',
+  'default',
+  'from',
+  'as',
+  'type',
+  'interface',
+  'enum',
+  'async',
+  'await',
+  'try',
+  'catch',
+  'finally',
+  'throw',
+  'typeof',
+  'instanceof',
+  'in',
+  'of',
+  'void',
+  'null',
+  'undefined',
+  'true',
+  'false',
+  'static',
+  'get',
+  'set',
+  'super',
+  'yield',
   // Python
-  'def', 'elif', 'pass', 'lambda', 'with', 'raise', 'except', 'global', 'nonlocal',
-  'assert', 'del', 'print', 'self', 'None', 'True', 'False', 'and', 'or', 'not',
-  'is', 'from', 'import',
+  'def',
+  'elif',
+  'pass',
+  'lambda',
+  'with',
+  'raise',
+  'except',
+  'global',
+  'nonlocal',
+  'assert',
+  'del',
+  'print',
+  'self',
+  'None',
+  'True',
+  'False',
+  'and',
+  'or',
+  'not',
+  'is',
+  'from',
+  'import',
   // Rust
-  'fn', 'pub', 'mut', 'impl', 'trait', 'struct', 'mod', 'use', 'crate', 'match',
-  'loop', 'move', 'ref', 'where', 'unsafe', 'dyn', 'Self',
+  'fn',
+  'pub',
+  'mut',
+  'impl',
+  'trait',
+  'struct',
+  'mod',
+  'use',
+  'crate',
+  'match',
+  'loop',
+  'move',
+  'ref',
+  'where',
+  'unsafe',
+  'dyn',
+  'Self',
   // Go
-  'go', 'chan', 'select', 'defer', 'range', 'map', 'package',
+  'go',
+  'chan',
+  'select',
+  'defer',
+  'range',
+  'map',
+  'package',
   // General
-  'require', 'module', 'exports',
+  'require',
+  'module',
+  'exports',
 ]);
 
 const TYPE_HINTS = new Set([
-  'string', 'number', 'boolean', 'any', 'never', 'unknown', 'object', 'void',
-  'Promise', 'Array', 'Record', 'Map', 'Set', 'Date', 'Error', 'RegExp',
-  'int', 'float', 'double', 'char', 'byte', 'long', 'short',
-  'i32', 'i64', 'u32', 'u64', 'f32', 'f64', 'str', 'Vec', 'Option', 'Result',
-  'String', 'bool', 'HashMap',
+  'string',
+  'number',
+  'boolean',
+  'any',
+  'never',
+  'unknown',
+  'object',
+  'void',
+  'Promise',
+  'Array',
+  'Record',
+  'Map',
+  'Set',
+  'Date',
+  'Error',
+  'RegExp',
+  'int',
+  'float',
+  'double',
+  'char',
+  'byte',
+  'long',
+  'short',
+  'i32',
+  'i64',
+  'u32',
+  'u64',
+  'f32',
+  'f64',
+  'str',
+  'Vec',
+  'Option',
+  'Result',
+  'String',
+  'bool',
+  'HashMap',
 ]);
 
 function tokenizeLine(line: string): Token[] {
@@ -56,7 +179,7 @@ function tokenizeLine(line: string): Token[] {
   while (i < line.length) {
     // Whitespace
     if (line[i] === ' ' || line[i] === '\t') {
-      let start = i;
+      const start = i;
       while (i < line.length && (line[i] === ' ' || line[i] === '\t')) i++;
       tokens.push({ text: line.slice(start, i), type: 'plain' });
       continue;
@@ -75,7 +198,7 @@ function tokenizeLine(line: string): Token[] {
     // String
     if (line[i] === '"' || line[i] === "'" || line[i] === '`') {
       const quote = line[i];
-      let start = i;
+      const start = i;
       i++;
       while (i < line.length && line[i] !== quote) {
         if (line[i] === '\\') i++;
@@ -88,7 +211,7 @@ function tokenizeLine(line: string): Token[] {
 
     // Number
     if (/[0-9]/.test(line[i])) {
-      let start = i;
+      const start = i;
       while (i < line.length && /[0-9.xXa-fA-F]/.test(line[i])) i++;
       tokens.push({ text: line.slice(start, i), type: 'number' });
       continue;
@@ -96,7 +219,7 @@ function tokenizeLine(line: string): Token[] {
 
     // Word (keyword / type / identifier)
     if (/[a-zA-Z_$]/.test(line[i])) {
-      let start = i;
+      const start = i;
       while (i < line.length && /[a-zA-Z0-9_$]/.test(line[i])) i++;
       const word = line.slice(start, i);
 
@@ -106,7 +229,10 @@ function tokenizeLine(line: string): Token[] {
         tokens.push({ text: word, type: 'function' });
       } else if (KEYWORDS.has(word)) {
         tokens.push({ text: word, type: 'keyword' });
-      } else if (TYPE_HINTS.has(word) || word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()) {
+      } else if (
+        TYPE_HINTS.has(word) ||
+        (word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase())
+      ) {
         tokens.push({ text: word, type: 'type' });
       } else {
         tokens.push({ text: word, type: 'plain' });
@@ -116,7 +242,7 @@ function tokenizeLine(line: string): Token[] {
 
     // Operator / punctuation
     if (/[+\-*/%=<>!&|^~?:;,.{}()\[\]@]/.test(line[i])) {
-      let start = i;
+      const start = i;
       while (i < line.length && /[+\-*/%=<>!&|^~?:;,.{}()\[\]@]/.test(line[i])) i++;
       tokens.push({ text: line.slice(start, i), type: 'operator' });
       continue;
@@ -144,11 +270,26 @@ const TOKEN_COLORS: Record<TokenType, string> = {
 function getLanguageFromPath(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
   const map: Record<string, string> = {
-    ts: 'TypeScript', tsx: 'TSX', js: 'JavaScript', jsx: 'JSX',
-    py: 'Python', rs: 'Rust', go: 'Go', rb: 'Ruby',
-    java: 'Java', json: 'JSON', md: 'Markdown', css: 'CSS',
-    html: 'HTML', yaml: 'YAML', yml: 'YAML', toml: 'TOML',
-    sh: 'Shell', sql: 'SQL', graphql: 'GraphQL', txt: 'Text',
+    ts: 'TypeScript',
+    tsx: 'TSX',
+    js: 'JavaScript',
+    jsx: 'JSX',
+    py: 'Python',
+    rs: 'Rust',
+    go: 'Go',
+    rb: 'Ruby',
+    java: 'Java',
+    json: 'JSON',
+    md: 'Markdown',
+    css: 'CSS',
+    html: 'HTML',
+    yaml: 'YAML',
+    yml: 'YAML',
+    toml: 'TOML',
+    sh: 'Shell',
+    sql: 'SQL',
+    graphql: 'GraphQL',
+    txt: 'Text',
   };
   return map[ext] || ext.toUpperCase();
 }
@@ -219,7 +360,9 @@ export default function FileEditorScreen() {
           <Text style={styles.backBtnText}>&lt; Back</Text>
         </TouchableOpacity>
         <View style={styles.navCenter}>
-          <Text style={styles.navTitle} numberOfLines={1}>{fileName}</Text>
+          <Text style={styles.navTitle} numberOfLines={1}>
+            {fileName}
+          </Text>
           <Text style={styles.navLang}>{lang}</Text>
         </View>
         <View style={styles.navActions}>
@@ -268,7 +411,14 @@ export default function FileEditorScreen() {
                   {lines.map((line, idx) => (
                     <View key={idx} style={styles.highlightLine}>
                       {tokenizeLine(line).map((token, ti) => (
-                        <Text key={ti} style={{ color: TOKEN_COLORS[token.type], fontSize: 13, fontFamily: 'monospace' }}>
+                        <Text
+                          key={ti}
+                          style={{
+                            color: TOKEN_COLORS[token.type],
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          }}
+                        >
                           {token.text}
                         </Text>
                       ))}

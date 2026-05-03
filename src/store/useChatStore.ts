@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 import { Conversation, StoredMessage } from '../api/types';
 import * as db from '../db/schema';
 
@@ -10,10 +11,18 @@ interface ChatStore {
 
   loadConversations: () => Promise<void>;
   loadMessages: (conversationId: string) => Promise<void>;
-  createConversation: (title: string, model: string, systemPrompt?: string) => Promise<Conversation>;
+  createConversation: (
+    title: string,
+    model: string,
+    systemPrompt?: string
+  ) => Promise<Conversation>;
   deleteConversation: (id: string) => Promise<void>;
   setActiveConversation: (id: string | null) => void;
-  addMessage: (conversationId: string, role: 'user' | 'assistant' | 'system', content: string) => Promise<StoredMessage>;
+  addMessage: (
+    conversationId: string,
+    role: 'user' | 'assistant' | 'system',
+    content: string
+  ) => Promise<StoredMessage>;
   updateConversationTitle: (id: string, title: string) => Promise<void>;
 }
 
@@ -88,10 +97,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     await db.deleteConversation(id);
     set((state) => ({
       conversations: state.conversations.filter((c) => c.id !== id),
-      activeConversationId:
-        state.activeConversationId === id ? null : state.activeConversationId,
-      messages:
-        state.activeConversationId === id ? [] : state.messages,
+      activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
+      messages: state.activeConversationId === id ? [] : state.messages,
     }));
   },
 
@@ -131,9 +138,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   updateConversationTitle: async (id, title) => {
     await db.updateConversationTitle(id, title);
     set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.id === id ? { ...c, title } : c
-      ),
+      conversations: state.conversations.map((c) => (c.id === id ? { ...c, title } : c)),
     }));
   },
 }));

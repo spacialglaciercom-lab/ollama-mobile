@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+
 import { streamChat } from '../api/ollamaClient';
 import { streamZeroClawChat } from '../api/zeroclawClient';
 import { useServerStore } from '../store/useServerStore';
@@ -6,7 +7,7 @@ import { useServerStore } from '../store/useServerStore';
 interface UseOllamaStreamReturn {
   sendMessage: (
     model: string,
-    messages: Array<{ role: string; content: string }>,
+    messages: { role: string; content: string }[],
     onContent: (fullContent: string) => void,
     onDone: () => void
   ) => Promise<void>;
@@ -21,7 +22,7 @@ export function useOllamaStream(): UseOllamaStreamReturn {
   const sendMessage = useCallback(
     async (
       model: string,
-      messages: Array<{ role: string; content: string }>,
+      messages: { role: string; content: string }[],
       onContent: (fullContent: string) => void,
       onDone: () => void
     ) => {
@@ -40,10 +41,14 @@ export function useOllamaStream(): UseOllamaStreamReturn {
       try {
         let gen;
         if (server.type === 'zeroclaw') {
-          gen = streamZeroClawChat(server.url, server.apiKey, messages.map((m) => ({
-            role: m.role as 'user' | 'assistant' | 'system',
-            content: m.content,
-          })));
+          gen = streamZeroClawChat(
+            server.url,
+            server.apiKey,
+            messages.map((m) => ({
+              role: m.role as 'user' | 'assistant' | 'system',
+              content: m.content,
+            }))
+          );
         } else {
           gen = streamChat(server.url, server.apiKey, {
             model,

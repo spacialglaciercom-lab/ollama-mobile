@@ -1,17 +1,10 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  StyleSheet,
-} from 'react-native';
-import { useServerStore, Server } from '../store/useServerStore';
+import { View, Text, TextInput, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
+
 import { pingServer } from '../api/ollamaClient';
-import { pingZeroClaw } from '../api/zeroclawClient';
 import { ServerType } from '../api/types';
+import { pingZeroClaw } from '../api/zeroclawClient';
+import { useServerStore, Server } from '../store/useServerStore';
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -90,10 +83,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
 
   const renderServer = ({ item }: { item: Server }) => (
     <TouchableOpacity
-      style={[
-        styles.serverRow,
-        item.id === activeServerId && styles.serverRowActive,
-      ]}
+      style={[styles.serverRow, item.id === activeServerId && styles.serverRowActive]}
       onPress={() => setActive(item.id)}
       onLongPress={() => openEdit(item)}
       activeOpacity={0.6}
@@ -102,7 +92,10 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
         <View
           style={[
             styles.serverDot,
-            { backgroundColor: pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158' },
+            {
+              backgroundColor:
+                pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158',
+            },
           ]}
         />
       </View>
@@ -112,15 +105,12 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
           {item.isCloud && <Text style={styles.cloudBadge}>Cloud</Text>}
           <Text style={styles.typeBadge}>{item.type === 'zeroclaw' ? 'ZeroClaw' : 'Ollama'}</Text>
         </View>
-        <Text style={styles.serverUrl} numberOfLines={1}>{item.url}</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.pingBtn}
-        onPress={() => handlePing(item)}
-      >
-        <Text style={styles.pingText}>
-          {pinging === item.id ? '...' : 'Ping'}
+        <Text style={styles.serverUrl} numberOfLines={1}>
+          {item.url}
         </Text>
+      </View>
+      <TouchableOpacity style={styles.pingBtn} onPress={() => handlePing(item)}>
+        <Text style={styles.pingText}>{pinging === item.id ? '...' : 'Ping'}</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -159,9 +149,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
             </>
           ) : (
             <View style={styles.form}>
-              <Text style={styles.formTitle}>
-                {editingServer ? 'Edit Server' : 'Add Server'}
-              </Text>
+              <Text style={styles.formTitle}>{editingServer ? 'Edit Server' : 'Add Server'}</Text>
 
               <View style={styles.formSection}>
                 <View style={styles.formGroup}>
@@ -182,13 +170,27 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
                       style={[styles.typeOption, type === 'ollama' && styles.typeOptionActive]}
                       onPress={() => setType('ollama')}
                     >
-                      <Text style={[styles.typeOptionText, type === 'ollama' && styles.typeOptionTextActive]}>Ollama</Text>
+                      <Text
+                        style={[
+                          styles.typeOptionText,
+                          type === 'ollama' && styles.typeOptionTextActive,
+                        ]}
+                      >
+                        Ollama
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.typeOption, type === 'zeroclaw' && styles.typeOptionActive]}
                       onPress={() => setType('zeroclaw')}
                     >
-                      <Text style={[styles.typeOptionText, type === 'zeroclaw' && styles.typeOptionTextActive]}>ZeroClaw</Text>
+                      <Text
+                        style={[
+                          styles.typeOptionText,
+                          type === 'zeroclaw' && styles.typeOptionTextActive,
+                        ]}
+                      >
+                        ZeroClaw
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -199,7 +201,9 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
                     style={styles.fieldInput}
                     value={url}
                     onChangeText={setUrl}
-                    placeholder={type === 'zeroclaw' ? "http://192.168.1.x:8080" : "http://192.168.1.x:11434"}
+                    placeholder={
+                      type === 'zeroclaw' ? 'http://192.168.1.x:8080' : 'http://192.168.1.x:11434'
+                    }
                     placeholderTextColor="rgba(235,235,245,0.18)"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -225,9 +229,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               </View>
 
               <TouchableOpacity style={styles.connectBtn} onPress={handleSave}>
-                <Text style={styles.connectBtnText}>
-                  {editingServer ? 'Save' : 'Add Server'}
-                </Text>
+                <Text style={styles.connectBtnText}>{editingServer ? 'Save' : 'Add Server'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => setShowForm(false)}>
@@ -235,8 +237,15 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               </TouchableOpacity>
 
               {editingServer && editingServer.id !== 'ollama-cloud' && (
-                <TouchableOpacity onPress={() => { handleDelete(editingServer); setShowForm(false); }}>
-                  <Text style={[styles.cancelLink, { color: '#ff453a', marginTop: 24 }]}>Delete Server</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    handleDelete(editingServer);
+                    setShowForm(false);
+                  }}
+                >
+                  <Text style={[styles.cancelLink, { color: '#ff453a', marginTop: 24 }]}>
+                    Delete Server
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>

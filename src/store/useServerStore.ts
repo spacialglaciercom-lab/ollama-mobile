@@ -1,6 +1,7 @@
+import { MMKV } from 'react-native-mmkv';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
+
 import { ServerType } from '../api/types';
 
 const storage = new MMKV();
@@ -46,18 +47,14 @@ export const useServerStore = create<ServerStore>()(
 
       updateServer: (id, updates) =>
         set((state) => ({
-          servers: state.servers.map((s) =>
-            s.id === id ? { ...s, ...updates } : s
-          ),
+          servers: state.servers.map((s) => (s.id === id ? { ...s, ...updates } : s)),
         })),
 
       removeServer: (id) =>
         set((state) => {
           const newServers = state.servers.filter((s) => s.id !== id);
           const newActiveId =
-            state.activeServerId === id
-              ? newServers[0]?.id ?? null
-              : state.activeServerId;
+            state.activeServerId === id ? (newServers[0]?.id ?? null) : state.activeServerId;
           return { servers: newServers, activeServerId: newActiveId };
         }),
 
