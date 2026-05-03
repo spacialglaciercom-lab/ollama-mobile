@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  StyleSheet,
+  Switch,
+} from 'react-native';
 
 import { pingServer } from '../api/ollamaClient';
 import { ServerType } from '../api/types';
 import { pingZeroClaw } from '../api/zeroclawClient';
-import { useServerStore, Server } from '../store/useServerStore';
+import { useServerStore, Server, buildServerUrl } from '../store/useServerStore';
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -17,48 +26,61 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState('');
+  const [tls, setTls] = useState(false);
+  const [pathPrefix, setPathPrefix] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [type, setType] = useState<ServerType>('ollama');
+  const [enabled, setEnabled] = useState(true);
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
 
   const openAdd = () => {
     setEditingServer(null);
     setName('');
-    setUrl('');
+    setHost('');
+    setPort('11434');
+    setTls(false);
+    setPathPrefix('');
     setApiKey('');
     setType('ollama');
+    setEnabled(true);
     setShowForm(true);
   };
 
   const openEdit = (server: Server) => {
     setEditingServer(server);
     setName(server.name);
-    setUrl(server.url);
+    setHost(server.host);
+    setPort(String(server.port));
+    setTls(server.tls);
+    setPathPrefix(server.pathPrefix ?? '');
     setApiKey(server.apiKey ?? '');
     setType(server.type);
+    setEnabled(server.enabled);
     setShowForm(true);
   };
 
   const handleSave = () => {
-    if (!name.trim() || !url.trim()) return;
+    if (!name.trim() || !host.trim()) return;
+    const portNum = parseInt(port.trim(), 10) || (tls ? 443 : 80);
+    const prefix = pathPrefix.trim() || undefined;
+    const payload: Omit<Server, 'id'> = {
+      name: name.trim(),
+      host: host.trim(),
+      port: portNum,
+      tls,
+      pathPrefix: prefix,
+      apiKey: apiKey.trim() || undefined,
+      enabled,
+      isCloud: host.trim().includes('ollama.com'),
+      type,
+    };
     if (editingServer) {
-      updateServer(editingServer.id, {
-        name: name.trim(),
-        url: url.trim(),
-        apiKey: apiKey.trim() || undefined,
-        isCloud: url.trim().includes('ollama.com'),
-        type,
-      });
+      updateServer(editingServer.id, payload);
     } else {
-      addServer({
-        name: name.trim(),
-        url: url.trim(),
-        apiKey: apiKey.trim() || undefined,
-        isCloud: url.trim().includes('ollama.com'),
-        type,
-      });
+      addServer(payload);
     }
     setShowForm(false);
   };
@@ -67,10 +89,11 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setPinging(server.id);
     setPingResult(null);
     let ok = false;
+    const url = buildServerUrl(server);
     if (server.type === 'zeroclaw') {
-      ok = await pingZeroClaw(server.url, server.apiKey);
+      ok = await pingZeroClaw(url, server.apiKey);
     } else {
-      ok = await pingServer(server.url, server.apiKey);
+      ok = await pingServer(url, server.apiKey);
     }
     setPinging(null);
     setPingResult({ id: server.id, ok });
@@ -83,7 +106,11 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
 
   const renderServer = ({ item }: { item: Server }) => (
     <TouchableOpacity
-      style={[styles.serverRow, item.id === activeServerId && styles.serverRowActive]}
+      style={[
+        styles.serverRow,
+        item.id === activeServerId && styles.serverRowActive,
+        !item.enabled && styles.serverRowDisabled,
+      ]}
       onPress={() => setActive(item.id)}
       onLongPress={() => openEdit(item)}
       activeOpacity={0.6}
@@ -95,18 +122,20 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
             {
               backgroundColor:
                 pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158',
+              opacity: item.enabled ? 1 : 0.4,
             },
           ]}
         />
       </View>
       <View style={styles.serverInfo}>
         <View style={styles.serverNameRow}>
-          <Text style={styles.serverName}>{item.name}</Text>
+          <Text style={[styles.serverName, !item.enabled && styles.textDisabled]}>{item.name}</Text>
           {item.isCloud && <Text style={styles.cloudBadge}>Cloud</Text>}
           <Text style={styles.typeBadge}>{item.type === 'zeroclaw' ? 'ZeroClaw' : 'Ollama'}</Text>
+          {!item.enabled && <Text style={styles.disabledBadge}>Off</Text>}
         </View>
         <Text style={styles.serverUrl} numberOfLines={1}>
-          {item.url}
+          {buildServerUrl(item)}
         </Text>
       </View>
       <TouchableOpacity style={styles.pingBtn} onPress={() => handlePing(item)}>
@@ -146,12 +175,79 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
                 <Text style={styles.addBtnText}>+ Add Server</Text>
               </TouchableOpacity>
+
+              {/* Conversation Settings Section */}
+              <View style={styles.sectionLabelWrap}>
+                <Text style={styles.sectionLabel}>CONVERSATIONS</Text>
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingLabel}>
+                  <Text style={styles.settingLabelText}>Auto-Save Conversations</Text>
+                  <Text style={styles.settingSubtext}>Automatically save chat history</Text>
+                </View>
+                <Switch
+                  value={autoSaveEnabled}
+                  onValueChange={setAutoSave}
+                  trackColor={{ false: '#3a3a3c', true: '#30d158' }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingLabel}>
+                  <Text style={styles.settingLabelText}>Auto-Delete After</Text>
+                  <Text style={styles.settingSubtext}>0 = never delete</Text>
+                </View>
+                <View style={styles.autoDeleteControl}>
+                  <TextInput
+                    style={styles.autoDeleteInput}
+                    value={autoDeleteInput}
+                    onChangeText={setAutoDeleteInput}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor="rgba(235,235,245,0.3)"
+                    onBlur={() => {
+                      const days = parseInt(autoDeleteInput, 10);
+                      if (!isNaN(days) && days >= 0) {
+                        setAutoDeleteDays(days);
+                      } else {
+                        setAutoDeleteInput('0');
+                        setAutoDeleteDays(0);
+                      }
+                    }}
+                  />
+                  <Text style={styles.autoDeleteUnit}>days</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.cleanupBtn}
+                onPress={() => {
+                  cleanupOldConversations();
+                  Alert.alert('Cleanup', 'Old conversations will be removed in background');
+                }}
+              >
+                <Text style={styles.cleanupBtnText}>Clean Up Now</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <View style={styles.form}>
               <Text style={styles.formTitle}>{editingServer ? 'Edit Server' : 'Add Server'}</Text>
 
               <View style={styles.formSection}>
+                <View style={styles.formGroup}>
+                  <View style={styles.toggleRow}>
+                    <Text style={styles.fieldLabel}>ENABLED</Text>
+                    <Switch
+                      value={enabled}
+                      onValueChange={setEnabled}
+                      trackColor={{ false: '#3a3a3c', true: 'rgba(48,209,88,0.3)' }}
+                      thumbColor={enabled ? '#30d158' : '#8e8e93'}
+                    />
+                  </View>
+                </View>
+                <View style={styles.formSep} />
                 <View style={styles.formGroup}>
                   <Text style={styles.fieldLabel}>NAME</Text>
                   <TextInput
@@ -196,18 +292,53 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
                 </View>
                 <View style={styles.formSep} />
                 <View style={styles.formGroup}>
-                  <Text style={styles.fieldLabel}>URL</Text>
+                  <Text style={styles.fieldLabel}>HOST</Text>
                   <TextInput
                     style={styles.fieldInput}
-                    value={url}
-                    onChangeText={setUrl}
-                    placeholder={
-                      type === 'zeroclaw' ? 'http://192.168.1.x:8080' : 'http://192.168.1.x:11434'
-                    }
+                    value={host}
+                    onChangeText={setHost}
+                    placeholder="192.168.1.x"
                     placeholderTextColor="rgba(235,235,245,0.18)"
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"
+                  />
+                </View>
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>PORT</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={port}
+                    onChangeText={setPort}
+                    placeholder={type === 'zeroclaw' ? '8080' : '11434'}
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <View style={styles.toggleRow}>
+                    <Text style={styles.fieldLabel}>TLS / SSL</Text>
+                    <Switch
+                      value={tls}
+                      onValueChange={setTls}
+                      trackColor={{ false: '#3a3a3c', true: 'rgba(48,209,88,0.3)' }}
+                      thumbColor={tls ? '#30d158' : '#8e8e93'}
+                    />
+                  </View>
+                </View>
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>PATH PREFIX</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={pathPrefix}
+                    onChangeText={setPathPrefix}
+                    placeholder="api/v1"
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
                 </View>
                 <View style={styles.formSep} />
@@ -312,6 +443,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#30d158',
   },
+  serverRowDisabled: {
+    opacity: 0.5,
+  },
   serverDotContainer: { width: 20, alignItems: 'center' },
   serverDot: {
     width: 8,
@@ -320,8 +454,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#30d158',
   },
   serverInfo: { flex: 1 },
-  serverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  serverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   serverName: { color: '#fff', fontSize: 17 },
+  textDisabled: { color: 'rgba(235,235,245,0.3)' },
   cloudBadge: {
     color: '#30d158',
     fontSize: 11,
@@ -336,6 +471,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     backgroundColor: 'rgba(10,132,255,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  disabledBadge: {
+    color: '#ff453a',
+    fontSize: 11,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255,69,58,0.12)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -365,6 +509,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   formGroup: { padding: 14 },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   fieldLabel: {
     fontSize: 11,
     color: 'rgba(235,235,245,0.3)',
@@ -416,4 +565,38 @@ const styles = StyleSheet.create({
   },
   connectBtnText: { color: '#000', fontSize: 17, fontWeight: '600' },
   cancelLink: { color: '#0a84ff', fontSize: 17, textAlign: 'center', marginTop: 16 },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#2c2c2e',
+    borderRadius: 12,
+    marginBottom: 8,
+    marginHorizontal: 16,
+  },
+  settingLabel: { flex: 1 },
+  settingLabelText: { color: '#fff', fontSize: 17, fontWeight: '500' },
+  settingSubtext: { color: 'rgba(235,235,245,0.3)', fontSize: 13, marginTop: 2 },
+  autoDeleteControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  autoDeleteInput: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 17,
+    color: '#fff',
+    width: 60,
+    textAlign: 'center',
+  },
+  autoDeleteUnit: { color: 'rgba(235,235,245,0.3)', fontSize: 15 },
+  cleanupBtn: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: '#2c2c2e',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cleanupBtnText: { color: '#fff', fontSize: 17, fontWeight: '600' },
 });

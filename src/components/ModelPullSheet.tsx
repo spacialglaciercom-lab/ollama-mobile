@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
 
-import { useServerStore } from '../store/useServerStore';
+import { useServerStore, buildServerUrl } from '../store/useServerStore';
 
 interface ModelPullSheetProps {
   visible: boolean;
@@ -27,7 +27,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
     setError(null);
 
     try {
-      const cleanUrl = activeServer.url.replace(/\/+$/, '');
+      const cleanUrl = buildServerUrl(activeServer).replace(/\/+$/, '');
       const url = `${cleanUrl}/api/pull`;
 
       abortRef.current = new AbortController();

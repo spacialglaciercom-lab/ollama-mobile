@@ -3,11 +3,16 @@ import { create } from 'zustand';
 import { Conversation, StoredMessage } from '../api/types';
 import * as db from '../db/schema';
 
+const AUTO_DELETE_KEY = 'ollama-auto-delete-days';
+const AUTO_SAVE_KEY = 'ollama-auto-save-enabled';
+
 interface ChatStore {
   conversations: Conversation[];
   activeConversationId: string | null;
   messages: StoredMessage[];
   loading: boolean;
+  autoSaveEnabled: boolean;
+  autoDeleteDays: number;
 
   loadConversations: () => Promise<void>;
   loadMessages: (conversationId: string) => Promise<void>;
@@ -24,6 +29,10 @@ interface ChatStore {
     content: string
   ) => Promise<StoredMessage>;
   updateConversationTitle: (id: string, title: string) => Promise<void>;
+  searchConversations: (query: string) => Promise<Conversation[]>;
+  setAutoSave: (enabled: boolean) => void;
+  setAutoDeleteDays: (days: number) => void;
+  cleanupOldConversations: () => Promise<void>;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -31,6 +40,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   activeConversationId: null,
   messages: [],
   loading: false,
+  autoSaveEnabled: true,
+  autoDeleteDays: 0,
 
   loadConversations: async () => {
     set({ loading: true });
@@ -140,5 +151,28 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set((state) => ({
       conversations: state.conversations.map((c) => (c.id === id ? { ...c, title } : c)),
     }));
+  },
+
+  searchConversations: async (query) => {
+    const results = await db.searchConversations(query);
+    set({ conversations: results });
+    return results;
+  },
+
+  setAutoSave: (enabled) => {
+    set({ autoSaveEnabled: enabled });
+  },
+
+  setAutoDeleteDays: (days) => {
+    set({ autoDeleteDays: days });
+  },
+
+  cleanupOldConversations: async () => {
+    const { autoDeleteDays } = get();
+    if (autoDeleteDays === 0) return;
+
+    const cutoff = Date.now() - autoDeleteDays * 24 * 60 * 60 * 1000;
+    await db.deleteConversationsOlderThan(cutoff);
+    await get().loadConversations();
   },
 }));

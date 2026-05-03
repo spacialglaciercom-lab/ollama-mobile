@@ -133,3 +133,101 @@ export interface ACPSessionUpdate {
     rawOutput?: any;
   };
 }
+
+// ============================================
+// Google Jules AI API Types (v1alpha)
+// ============================================
+
+/**
+ * A connected GitHub repository source in Jules
+ */
+export interface JulesSource {
+  name: string;
+  id: string;
+  repositoryUri: string;
+  branch?: string;
+  state?: string;
+  lastSyncTime?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+/**
+ * Response for listing Jules sources
+ */
+export interface JulesSourcesResponse {
+  sources: JulesSource[];
+}
+
+/**
+ * GitHub repository context for a Jules session
+ */
+export interface JulesGitHubRepoContext {
+  startingBranch?: string;
+}
+
+/**
+ * Source context for a Jules session
+ */
+export interface JulesSourceContext {
+  source: string;
+  githubRepoContext?: JulesGitHubRepoContext;
+}
+
+/**
+ * Request payload for creating a Jules session
+ */
+export interface JulesSessionCreateRequest {
+  prompt: string;
+  sourceContext: JulesSourceContext;
+  title?: string;
+}
+
+/**
+ * A Jules session
+ */
+export interface JulesSession {
+  name: string;
+  id: string;
+  title?: string;
+  sourceContext?: JulesSourceContext;
+  state?: string;
+  createTime?: string;
+  updateTime?: string;
+  agent?: string;
+}
+
+/**
+ * Response for creating a Jules session
+ */
+export interface JulesSessionCreateResponse {
+  session: JulesSession;
+}
+
+/**
+ * Response for approving a Jules session plan
+ */
+export interface JulesApprovePlanResponse {
+  session: JulesSession;
+  approved: boolean;
+}
+
+/**
+ * Request payload for sending a message to a Jules session
+ */
+export interface JulesSendMessageRequest {
+  prompt: string;
+}
+
+/**
+ * Response for sending a message to a Jules session
+ */
+export interface JulesSendMessageResponse {
+  session: JulesSession;
+  message?: {
+    id: string;
+    content: string;
+    role?: string;
+    createTime?: string;
+  };
+}

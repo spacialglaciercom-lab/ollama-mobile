@@ -5,7 +5,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated } from 'r
 
 import { pingServer } from '../src/api/ollamaClient';
 import { useModelStore } from '../src/store/useModelStore';
-import { useServerStore } from '../src/store/useServerStore';
+import { useServerStore, buildServerUrl, parseLegacyUrl } from '../src/store/useServerStore';
 
 export default function SetupScreen() {
   const { servers, activeServerId, addServer, updateServer, setActive } = useServerStore();
@@ -21,7 +21,7 @@ export default function SetupScreen() {
   useEffect(() => {
     const cloud = servers.find((s) => s.isCloud);
     if (cloud) {
-      setUrl(cloud.url);
+      setUrl(buildServerUrl(cloud));
       setApiKey(cloud.apiKey ?? '');
     }
   }, []);
@@ -35,20 +35,35 @@ export default function SetupScreen() {
     const isCloud = url.trim().includes('ollama.com');
     const key = apiKey.trim() || undefined;
 
+    // Parse URL into new server fields
+    const parsed = parseLegacyUrl(url.trim());
+    const serverUrl = buildServerUrl({
+      ...parsed,
+      id: '',
+      name: '',
+      enabled: true,
+      isCloud: false,
+      type: 'ollama',
+    });
+
     // Ping the server
-    const ok = await pingServer(url.trim(), key);
+    const ok = await pingServer(serverUrl, key);
 
     if (ok) {
       // Save or update server
-      const existing = servers.find((s) => s.url === url.trim());
+      const existing = servers.find((s) => buildServerUrl(s) === serverUrl);
       if (existing) {
         if (key) updateServer(existing.id, { apiKey: key });
         setActive(existing.id);
       } else {
         addServer({
           name: isCloud ? 'Ollama Cloud' : 'My Server',
-          url: url.trim(),
+          host: parsed.host,
+          port: parsed.port,
+          tls: parsed.tls,
+          pathPrefix: parsed.pathPrefix,
           apiKey: key,
+          enabled: true,
           isCloud,
           type: 'ollama',
         });
@@ -57,7 +72,7 @@ export default function SetupScreen() {
       // Try to fetch models
       try {
         const { fetchModels: apiFetchModels } = require('../src/api/ollamaClient');
-        const list = await apiFetchModels(url.trim(), key);
+        const list = await apiFetchModels(serverUrl, key);
         setModelCount(list.models.length);
         setStatus('success');
 

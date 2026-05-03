@@ -1,16 +1,24 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 
+import { ConversationList } from '../src/components/ConversationList';
 import { useChatStore } from '../src/store/useChatStore';
 import { useModelStore } from '../src/store/useModelStore';
 import { useServerStore } from '../src/store/useServerStore';
+import { exportConversationAsMarkdown } from '../src/utils/exportConversation';
 
 type Tab = 'chats' | 'repos';
 
 export default function HomeScreen() {
-  const { conversations, loadConversations, deleteConversation } = useChatStore();
+  const {
+    conversations,
+    loadConversations,
+    deleteConversation,
+    updateConversationTitle,
+    messages,
+  } = useChatStore();
   const { selectedModel, fetchModels } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const [tab, setTab] = useState<Tab>('chats');
@@ -18,7 +26,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadConversations();
     if (activeServer) fetchModels();
-  }, [activeServer?.id]);
+  }, [activeServer?.id, fetchModels, loadConversations]);
 
   const handleNewChat = () => {
     router.push({
@@ -38,30 +46,14 @@ export default function HomeScreen() {
     ]);
   };
 
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    const now = new Date();
-    if (d.toDateString() === now.toDateString())
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const handleRenameChat = async (id: string, newTitle: string) => {
+    await updateConversationTitle(id, newTitle);
   };
 
-  const renderChat = ({ item }: { item: (typeof conversations)[0] }) => (
-    <TouchableOpacity
-      style={styles.chatCard}
-      onPress={() => handleOpenChat(item.id)}
-      onLongPress={() => handleDeleteChat(item.id)}
-      activeOpacity={0.6}
-    >
-      <View style={styles.chatCardContent}>
-        <Text style={styles.chatTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.chatModel}>{item.model}</Text>
-      </View>
-      <Text style={styles.chatTime}>{formatTime(item.updatedAt)}</Text>
-    </TouchableOpacity>
-  );
+  const handleExportChat = async (conversation: (typeof conversations)[0]) => {
+    const convMessages = messages.filter((m) => m.conversationId === conversation.id);
+    await exportConversationAsMarkdown(conversation, convMessages);
+  };
 
   return (
     <View style={styles.container}>
@@ -91,17 +83,12 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={conversations}
-        keyExtractor={(item) => item.id}
-        renderItem={renderChat}
-        contentContainerStyle={conversations.length === 0 ? styles.emptyList : styles.list}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No conversations</Text>
-            <Text style={styles.emptySub}>Tap + to start a new chat</Text>
-          </View>
-        }
+      <ConversationList
+        conversations={conversations}
+        onOpenChat={handleOpenChat}
+        onDeleteChat={handleDeleteChat}
+        onRenameChat={handleRenameChat}
+        onExportChat={handleExportChat}
       />
     </View>
   );
@@ -145,22 +132,4 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#fff',
   },
-  list: { paddingHorizontal: 16, paddingTop: 8 },
-  emptyList: { flexGrow: 1, justifyContent: 'center' },
-  emptyState: { alignItems: 'center' },
-  emptyTitle: { color: 'rgba(235,235,245,0.3)', fontSize: 20, fontWeight: '600' },
-  emptySub: { color: 'rgba(235,235,245,0.18)', fontSize: 15, marginTop: 4 },
-  chatCard: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chatCardContent: { flex: 1 },
-  chatTitle: { color: '#fff', fontSize: 17, fontWeight: '500' },
-  chatModel: { color: 'rgba(235,235,245,0.3)', fontSize: 13, marginTop: 2 },
-  chatTime: { color: 'rgba(235,235,245,0.3)', fontSize: 15, marginLeft: 12 },
 });

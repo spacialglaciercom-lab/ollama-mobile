@@ -16,6 +16,12 @@ Connect to **Ollama Cloud** or any self-hosted Ollama instance. Stream responses
 - ✅ Sheet-based navigation (model picker, settings)
 - ✅ Context chips (server status, system prompt toggle)
 - ✅ Auto-title from first message
+- ✅ Search conversations by title or content
+- ✅ Rename conversations (long-press)
+- ✅ Share/Export conversations as markdown
+- ✅ Auto-save toggle for conversations
+- ✅ Auto-delete conversations after X days (0 = never)
+- ✅ Diagnostics store with automatic secret redaction
 - 🔄 Model pulling with progress (coming)
 - 🔄 Syntax highlighting for code blocks (coming)
 - 🔄 Multimodal input (coming)

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { useServerStore } from './useServerStore';
+import { useServerStore, buildServerUrl } from './useServerStore';
 import { fetchModels as apiFetchModels } from '../api/ollamaClient';
 
 interface ModelInfo {
@@ -64,7 +64,7 @@ export const useModelStore = create<ModelStore>((set) => ({
     }
 
     try {
-      const response = await apiFetchModels(server.url, server.apiKey);
+      const response = await apiFetchModels(buildServerUrl(server), server.apiKey);
       set({
         models: response.models as ModelInfo[],
         loading: false,

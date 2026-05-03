@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { pingServer } from '../api/ollamaClient';
-import { useServerStore } from '../store/useServerStore';
+import { useServerStore, buildServerUrl } from '../store/useServerStore';
 
 interface UseServerHealthReturn {
   connected: boolean;
@@ -23,7 +23,7 @@ export function useServerHealth(): UseServerHealthReturn {
     }
 
     setChecking(true);
-    const alive = await pingServer(server.url, server.apiKey);
+    const alive = await pingServer(buildServerUrl(server), server.apiKey);
     setConnected(alive);
     setChecking(false);
     setLastCheck(Date.now());

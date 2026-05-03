@@ -164,3 +164,45 @@ export async function updateRepoSynced(id: string, timestamp: number): Promise<v
   const db = await getDB();
   await db.runAsync('UPDATE repos SET last_synced = ? WHERE id = ?', [timestamp, id]);
 }
+
+// Search and cleanup operations
+
+export async function searchConversations(query: string): Promise<Conversation[]> {
+  const db = await getDB();
+  const searchTerm = `%${query}%`;
+  const rows = await db.getAllAsync<any>(
+    `SELECT * FROM conversations 
+     WHERE title LIKE ? OR system_prompt LIKE ? 
+     ORDER BY updated_at DESC`,
+    [searchTerm, searchTerm]
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    model: row.model,
+    systemPrompt: row.system_prompt,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function deleteConversationsOlderThan(cutoff: number): Promise<void> {
+  const db = await getDB();
+  await db.runAsync('DELETE FROM conversations WHERE updated_at < ?', [cutoff]);
+}
+
+export async function searchMessages(query: string): Promise<StoredMessage[]> {
+  const db = await getDB();
+  const searchTerm = `%${query}%`;
+  const rows = await db.getAllAsync<any>(
+    `SELECT * FROM messages WHERE content LIKE ? ORDER BY created_at DESC`,
+    [searchTerm]
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    conversationId: row.conversation_id,
+    role: row.role,
+    content: row.content,
+    createdAt: row.created_at,
+  }));
+}
