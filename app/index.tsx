@@ -16,7 +16,8 @@ export default function HomeScreen() {
     conversations,
     loadConversations,
     deleteConversation,
-    updateConversationTitle, cleanupOldConversations,
+    updateConversationTitle,
+    cleanupOldConversations,
     messages,
   } = useChatStore();
   const { selectedModel, fetchModels } = useModelStore();
@@ -27,7 +28,7 @@ export default function HomeScreen() {
     loadConversations();
     cleanupOldConversations();
     if (activeServer) fetchModels();
-  }, [activeServer?.id, fetchModels, loadConversations, cleanupOldConversations]);
+  }, [activeServer, fetchModels, loadConversations, cleanupOldConversations]);
 
   const handleNewChat = () => {
     router.push({

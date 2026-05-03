@@ -112,7 +112,8 @@ export const useChatStore = create<ChatStore>()(
         await db.deleteConversation(id);
         set((state) => ({
           conversations: state.conversations.filter((c) => c.id !== id),
-          activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
+          activeConversationId:
+            state.activeConversationId === id ? null : state.activeConversationId,
           messages: state.activeConversationId === id ? [] : state.messages,
         }));
       },
