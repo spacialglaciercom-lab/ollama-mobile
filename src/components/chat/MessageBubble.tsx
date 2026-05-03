@@ -20,11 +20,7 @@ export function MessageBubble({ role, content, selected, onLongPress }: MessageB
   const isUser = role === 'user';
 
   return (
-    <TouchableOpacity
-      onLongPress={onLongPress}
-      activeOpacity={0.8}
-      delayLongPress={300}
-    >
+    <TouchableOpacity onLongPress={onLongPress} activeOpacity={0.8} delayLongPress={300}>
       <View
         style={[
           styles.container,

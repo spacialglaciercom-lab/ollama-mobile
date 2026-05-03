@@ -7,7 +7,7 @@ export async function createChatStreamRequest(
   baseUrl: string,
   apiKey: string | undefined,
   model: string,
-  messages: Array<{ role: string; content: string }>,
+  messages: { role: string; content: string }[],
   options?: {
     temperature?: number;
     top_p?: number;

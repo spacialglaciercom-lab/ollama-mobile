@@ -1,17 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { useServerStore } from '../src/store/useServerStore';
-import { useModelStore } from '../src/store/useModelStore';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+
 import { pingServer } from '../src/api/ollamaClient';
+import { useModelStore } from '../src/store/useModelStore';
+import { useServerStore } from '../src/store/useServerStore';
 
 export default function SetupScreen() {
   const { servers, activeServerId, addServer, updateServer, setActive } = useServerStore();
@@ -51,19 +45,19 @@ export default function SetupScreen() {
         if (key) updateServer(existing.id, { apiKey: key });
         setActive(existing.id);
       } else {
-        const newServer = addServer({
+        addServer({
           name: isCloud ? 'Ollama Cloud' : 'My Server',
           url: url.trim(),
           apiKey: key,
           isCloud,
+          type: 'ollama',
         });
       }
 
       // Try to fetch models
       try {
-        const { createClient } = require('../src/api/ollamaClient');
-        const client = createClient(url.trim(), key);
-        const list = await client.list();
+        const { fetchModels: apiFetchModels } = require('../src/api/ollamaClient');
+        const list = await apiFetchModels(url.trim(), key);
         setModelCount(list.models.length);
         setStatus('success');
 
@@ -119,8 +113,7 @@ export default function SetupScreen() {
             <View style={styles.fieldSep} />
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>
-                API KEY{' '}
-                <Text style={styles.fieldLabelOpt}>optional</Text>
+                API KEY <Text style={styles.fieldLabelOpt}>optional</Text>
               </Text>
               <TextInput
                 style={styles.fieldInput}
@@ -150,7 +143,8 @@ export default function SetupScreen() {
           <Animated.View style={[styles.statusLine, { opacity: opacityAnim }]}>
             <Text style={styles.statusIcon}>✓</Text>
             <Text style={styles.statusText}>
-              Connected{modelCount > 0 ? ` — ${modelCount} model${modelCount !== 1 ? 's' : ''}` : ''}
+              Connected
+              {modelCount > 0 ? ` — ${modelCount} model${modelCount !== 1 ? 's' : ''}` : ''}
             </Text>
           </Animated.View>
         )}
@@ -170,10 +164,7 @@ export default function SetupScreen() {
         )}
 
         {status === 'success' && (
-          <TouchableOpacity
-            style={styles.startBtn}
-            onPress={() => router.replace('/')}
-          >
+          <TouchableOpacity style={styles.startBtn} onPress={() => router.replace('/')}>
             <Text style={styles.startBtnText}>Start Chatting →</Text>
           </TouchableOpacity>
         )}

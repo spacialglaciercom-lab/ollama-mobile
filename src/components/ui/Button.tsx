@@ -9,12 +9,7 @@ interface ButtonProps {
 }
 
 export function Button({ title, onPress, variant = 'primary', disabled }: ButtonProps) {
-  const bgColor =
-    variant === 'primary'
-      ? '#8B5CF6'
-      : variant === 'danger'
-        ? '#dc2626'
-        : '#2a2a2a';
+  const bgColor = variant === 'primary' ? '#8B5CF6' : variant === 'danger' ? '#dc2626' : '#2a2a2a';
 
   return (
     <TouchableOpacity

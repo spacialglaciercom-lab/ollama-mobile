@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import {
-  View,
-  FlatList,
-  Text,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-} from 'react-native';
-import { useModelStore } from '../store/useModelStore';
+import { View, FlatList, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+
 import { ModelPullSheet } from './ModelPullSheet';
+import { useModelStore } from '../store/useModelStore';
+import { useServerStore } from '../store/useServerStore';
 
 interface ModelPickerSheetProps {
   visible: boolean;
@@ -17,6 +12,7 @@ interface ModelPickerSheetProps {
 
 export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
   const { models, selectedModel, selectModel, fetchModels, loading } = useModelStore();
+  const server = useServerStore((state) => state.getActiveServer());
   const [showPull, setShowPull] = useState(false);
 
   const handleSelect = (name: string) => {
@@ -25,6 +21,7 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
   };
 
   const formatSize = (bytes: number) => {
+    if (bytes === 0) return '';
     if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)}GB`;
     if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)}MB`;
     return '';
@@ -50,14 +47,9 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
               data={models}
               keyExtractor={(item) => item.name}
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modelRow}
-                  onPress={() => handleSelect(item.name)}
-                >
+                <TouchableOpacity style={styles.modelRow} onPress={() => handleSelect(item.name)}>
                   <View style={styles.modelDot}>
-                    {selectedModel === item.name && (
-                      <View style={styles.modelDotInner} />
-                    )}
+                    {selectedModel === item.name && <View style={styles.modelDotInner} />}
                   </View>
                   <Text
                     style={[
@@ -75,19 +67,16 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
               onRefresh={fetchModels}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>
-                    {loading ? 'Loading...' : 'No models found'}
-                  </Text>
+                  <Text style={styles.emptyText}>{loading ? 'Loading...' : 'No models found'}</Text>
                 </View>
               }
             />
 
-            <TouchableOpacity
-              style={styles.pullBtn}
-              onPress={() => setShowPull(true)}
-            >
-              <Text style={styles.pullBtnText}>Pull new model</Text>
-            </TouchableOpacity>
+            {server?.type !== 'zeroclaw' && (
+              <TouchableOpacity style={styles.pullBtn} onPress={() => setShowPull(true)}>
+                <Text style={styles.pullBtnText}>Pull new model</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>

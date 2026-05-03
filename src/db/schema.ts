@@ -1,5 +1,9 @@
 import * as SQLite from 'expo-sqlite';
 
+// Conversation operations
+
+import { Conversation, StoredMessage } from '../api/types';
+
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
 export async function getDB(): Promise<SQLite.SQLiteDatabase> {
@@ -49,15 +53,9 @@ export async function initDB(db: SQLite.SQLiteDatabase): Promise<void> {
   `);
 }
 
-// Conversation operations
-
-import { Conversation, StoredMessage } from '../api/types';
-
 export async function getConversations(): Promise<Conversation[]> {
   const db = await getDB();
-  const rows = await db.getAllAsync<any>(
-    'SELECT * FROM conversations ORDER BY updated_at DESC'
-  );
+  const rows = await db.getAllAsync<any>('SELECT * FROM conversations ORDER BY updated_at DESC');
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
@@ -88,26 +86,14 @@ export async function deleteConversation(id: string): Promise<void> {
   await db.runAsync('DELETE FROM conversations WHERE id = ?', [id]);
 }
 
-export async function updateConversationTimestamp(
-  id: string,
-  timestamp: number
-): Promise<void> {
+export async function updateConversationTimestamp(id: string, timestamp: number): Promise<void> {
   const db = await getDB();
-  await db.runAsync(
-    'UPDATE conversations SET updated_at = ? WHERE id = ?',
-    [timestamp, id]
-  );
+  await db.runAsync('UPDATE conversations SET updated_at = ? WHERE id = ?', [timestamp, id]);
 }
 
-export async function updateConversationTitle(
-  id: string,
-  title: string
-): Promise<void> {
+export async function updateConversationTitle(id: string, title: string): Promise<void> {
   const db = await getDB();
-  await db.runAsync(
-    'UPDATE conversations SET title = ? WHERE id = ?',
-    [title, id]
-  );
+  await db.runAsync('UPDATE conversations SET title = ? WHERE id = ?', [title, id]);
 }
 
 // Message operations
@@ -131,13 +117,7 @@ export async function insertMessage(message: StoredMessage): Promise<void> {
   const db = await getDB();
   await db.runAsync(
     'INSERT INTO messages (id, conversation_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
-    [
-      message.id,
-      message.conversationId,
-      message.role,
-      message.content,
-      message.createdAt,
-    ]
+    [message.id, message.conversationId, message.role, message.content, message.createdAt]
   );
 }
 
@@ -156,9 +136,7 @@ export interface RepoRecord {
 
 export async function getRepos(): Promise<RepoRecord[]> {
   const db = await getDB();
-  const rows = await db.getAllAsync<any>(
-    'SELECT * FROM repos ORDER BY created_at DESC'
-  );
+  const rows = await db.getAllAsync<any>('SELECT * FROM repos ORDER BY created_at DESC');
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -184,8 +162,5 @@ export async function deleteRepoRecord(id: string): Promise<void> {
 
 export async function updateRepoSynced(id: string, timestamp: number): Promise<void> {
   const db = await getDB();
-  await db.runAsync(
-    'UPDATE repos SET last_synced = ? WHERE id = ?',
-    [timestamp, id]
-  );
+  await db.runAsync('UPDATE repos SET last_synced = ? WHERE id = ?', [timestamp, id]);
 }

@@ -1,6 +1,6 @@
+import { Buffer } from 'buffer';
 import { File, Directory, Paths } from 'expo-file-system';
 import * as git from 'isomorphic-git';
-import { Buffer } from 'buffer';
 
 // Polyfill Buffer for isomorphic-git
 if (typeof global.Buffer === 'undefined') {
@@ -178,7 +178,7 @@ export async function cloneRepo(
   branch: string = 'main',
   pat?: string,
   onProgress?: (progress: CloneProgress) => void,
-  depth: number = 1,
+  depth: number = 1
 ): Promise<void> {
   const dirPath = getRepoDir(repoId);
   const dir = new Directory(dirPath);
@@ -216,7 +216,7 @@ export async function cloneRepo(
 export async function pullRepo(
   repoId: string,
   branch: string = 'main',
-  pat?: string,
+  pat?: string
 ): Promise<void> {
   const dirPath = getRepoDir(repoId);
 
@@ -241,7 +241,7 @@ export async function pullRepo(
 export async function pushRepo(
   repoId: string,
   branch: string = 'main',
-  pat?: string,
+  pat?: string
 ): Promise<void> {
   const dirPath = getRepoDir(repoId);
 
@@ -265,7 +265,7 @@ export async function pushRepo(
 export async function commitChanges(
   repoId: string,
   message: string,
-  author: { name: string; email: string },
+  author: { name: string; email: string }
 ): Promise<string> {
   const dirPath = getRepoDir(repoId);
 
@@ -296,7 +296,12 @@ export async function getStatus(repoId: string): Promise<GitStatusResult> {
   const untracked: string[] = [];
 
   for (const row of statusMatrix) {
-    const [filepath, headStatus, workdirStatus, stageStatus] = row as [string, number, number, number];
+    const [filepath, headStatus, workdirStatus, stageStatus] = row as [
+      string,
+      number,
+      number,
+      number,
+    ];
     if (headStatus === 0 && workdirStatus === 2 && stageStatus === 2) {
       added.push(filepath);
     } else if (headStatus === 1 && workdirStatus === 0 && stageStatus === 0) {
@@ -314,7 +319,7 @@ export async function getStatus(repoId: string): Promise<GitStatusResult> {
   let ahead = 0;
   let behind = 0;
   try {
-    const branch = await git.currentBranch({ fs: expoFS, dir: dirPath }) as string | undefined;
+    const branch = (await git.currentBranch({ fs: expoFS, dir: dirPath })) as string | undefined;
     if (branch) {
       const localOids = await git.log({ fs: expoFS, dir: dirPath, ref: branch, depth: 50 });
       const remoteOids = await git.log({
@@ -376,7 +381,7 @@ export async function listDir(repoId: string, subPath: string = ''): Promise<Fil
       name,
       path: itemPath,
       isDirectory: isDir,
-      size: isDir ? 0 : (item as any).size ?? 0,
+      size: isDir ? 0 : ((item as any).size ?? 0),
     });
   }
 

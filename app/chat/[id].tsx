@@ -1,3 +1,5 @@
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
@@ -11,17 +13,16 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
+
+import { StoredMessage } from '../../src/api/types';
+import { MessageActionSheet } from '../../src/components/MessageActionSheet';
+import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
+import { ModelPullSheet } from '../../src/components/ModelPullSheet';
+import { SettingsSheet } from '../../src/components/SettingsSheet';
+import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
 import { useServerStore } from '../../src/store/useServerStore';
-import { useOllamaStream } from '../../src/hooks/useOllamaStream';
-import { StoredMessage } from '../../src/api/types';
-import { SettingsSheet } from '../../src/components/SettingsSheet';
-import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
-import { ModelPullSheet } from '../../src/components/ModelPullSheet';
-import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
@@ -108,7 +109,7 @@ export default function ChatScreen() {
     setLocalMessages((prev) => [...prev, userMsg]);
 
     // Build messages array for API
-    const apiMessages: Array<{ role: string; content: string }> = [];
+    const apiMessages: { role: string; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
@@ -141,7 +142,16 @@ export default function ChatScreen() {
       const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
       updateConversationTitle(convId, title);
     }
-  }, [inputText, selectedModel, localMessages, streaming, addMessage, sendMessage, systemPromptText, showSystemPrompt]);
+  }, [
+    inputText,
+    selectedModel,
+    localMessages,
+    streaming,
+    addMessage,
+    sendMessage,
+    systemPromptText,
+    showSystemPrompt,
+  ]);
 
   const allMessages = [
     ...localMessages,
@@ -173,20 +183,14 @@ export default function ChatScreen() {
           <Text style={styles.navBtnText}>‹ Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.modelPill}
-          onPress={() => setShowModelPicker(true)}
-        >
+        <TouchableOpacity style={styles.modelPill} onPress={() => setShowModelPicker(true)}>
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
           <Text style={styles.modelPillCaret}>▾</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navBtn}
-          onPress={() => setShowMenu(!showMenu)}
-        >
+        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(!showMenu)}>
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
@@ -276,9 +280,7 @@ export default function ChatScreen() {
                 <Text style={item.role === 'system' ? styles.bubbleSystemText : styles.bubbleText}>
                   {item.content}
                 </Text>
-                {item.id === 'streaming' && streaming && (
-                  <Text style={styles.cursor}>▌</Text>
-                )}
+                {item.id === 'streaming' && streaming && <Text style={styles.cursor}>▌</Text>}
               </View>
             </View>
           </TouchableOpacity>
@@ -289,9 +291,7 @@ export default function ChatScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Start a conversation</Text>
-            <Text style={styles.emptySub}>
-              Send a message to begin chatting
-            </Text>
+            <Text style={styles.emptySub}>Send a message to begin chatting</Text>
           </View>
         }
       />
@@ -335,9 +335,7 @@ export default function ChatScreen() {
           <TouchableOpacity
             style={[
               styles.sendBtn,
-              inputText.trim() && !streaming
-                ? styles.sendBtnActive
-                : styles.sendBtnInactive,
+              inputText.trim() && !streaming ? styles.sendBtnActive : styles.sendBtnInactive,
             ]}
             onPress={handleSend}
             disabled={!inputText.trim() || streaming}
@@ -368,10 +366,7 @@ export default function ChatScreen() {
       </View>
 
       {/* Model Picker Sheet */}
-      <ModelPickerSheet
-        visible={showModelPicker}
-        onClose={() => setShowModelPicker(false)}
-      />
+      <ModelPickerSheet visible={showModelPicker} onClose={() => setShowModelPicker(false)} />
 
       {/* Settings Sheet */}
       <SettingsSheet visible={showSettings} onClose={() => setShowSettings(false)} />
@@ -385,9 +380,7 @@ export default function ChatScreen() {
         onRegenerate={() => {
           setSelectedMessage(null);
           // Re-send last user message
-          const lastUserMsg = [...localMessages]
-            .reverse()
-            .find((m) => m.role === 'user');
+          const lastUserMsg = [...localMessages].reverse().find((m) => m.role === 'user');
           if (lastUserMsg) {
             setInputText(lastUserMsg.content);
           }

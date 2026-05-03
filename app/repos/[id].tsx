@@ -1,3 +1,4 @@
+import { useLocalSearchParams, router } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -7,11 +8,17 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { listDir, getStatus, getCurrentBranch, FileEntry, GitStatusResult } from '../../src/api/gitClient';
-import { useRepoStore } from '../../src/store/useRepoStore';
-import { GitStatusChip } from '../../src/components/GitStatusChip';
+
+import {
+  listDir,
+  getStatus,
+  getCurrentBranch,
+  FileEntry,
+  GitStatusResult,
+} from '../../src/api/gitClient';
 import { CommitSheet } from '../../src/components/CommitSheet';
+import { GitStatusChip } from '../../src/components/GitStatusChip';
+import { useRepoStore } from '../../src/store/useRepoStore';
 
 export default function RepoBrowserScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,19 +33,22 @@ export default function RepoBrowserScreen() {
   const [gitStatus, setGitStatus] = useState<GitStatusResult | null>(null);
   const [commitVisible, setCommitVisible] = useState(false);
 
-  const loadDir = useCallback(async (subPath: string) => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const items = await listDir(id, subPath);
-      setEntries(items);
-      setCurrentPath(subPath);
-    } catch (err: any) {
-      setEntries([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const loadDir = useCallback(
+    async (subPath: string) => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const items = await listDir(id, subPath);
+        setEntries(items);
+        setCurrentPath(subPath);
+      } catch (err: any) {
+        setEntries([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [id]
+  );
 
   const loadStatus = useCallback(async () => {
     if (!id) return;
@@ -80,10 +90,26 @@ export default function RepoBrowserScreen() {
     if (entry.isDirectory) return 'D';
     const ext = entry.name.split('.').pop()?.toLowerCase() ?? '';
     const iconMap: Record<string, string> = {
-      ts: 'TS', tsx: 'TX', js: 'JS', jsx: 'JX', py: 'PY', rs: 'RS',
-      go: 'GO', rb: 'RB', java: 'JV', json: '{}', md: 'MD',
-      css: 'CS', html: 'HT', yaml: 'YL', yml: 'YL', toml: 'TM',
-      txt: 'TX', sh: 'SH', sql: 'SQ', graphql: 'GQ',
+      ts: 'TS',
+      tsx: 'TX',
+      js: 'JS',
+      jsx: 'JX',
+      py: 'PY',
+      rs: 'RS',
+      go: 'GO',
+      rb: 'RB',
+      java: 'JV',
+      json: '{}',
+      md: 'MD',
+      css: 'CS',
+      html: 'HT',
+      yaml: 'YL',
+      yml: 'YL',
+      toml: 'TM',
+      txt: 'TX',
+      sh: 'SH',
+      sql: 'SQ',
+      graphql: 'GQ',
     };
     return iconMap[ext] || 'F';
   };
@@ -100,8 +126,12 @@ export default function RepoBrowserScreen() {
         </Text>
       </View>
       <View style={styles.fileInfo}>
-        <Text style={styles.fileName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.filePath} numberOfLines={1}>{item.path}</Text>
+        <Text style={styles.fileName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.filePath} numberOfLines={1}>
+          {item.path}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -112,7 +142,9 @@ export default function RepoBrowserScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={handleGoBack}>
           <Text style={styles.backBtnText}>&lt; Back</Text>
         </TouchableOpacity>
-        <Text style={styles.navTitle} numberOfLines={1}>{repo?.name || 'Repo'}</Text>
+        <Text style={styles.navTitle} numberOfLines={1}>
+          {repo?.name || 'Repo'}
+        </Text>
         <TouchableOpacity style={styles.gitBtn} onPress={() => setCommitVisible(true)}>
           <Text style={styles.gitBtnText}>Git</Text>
         </TouchableOpacity>
@@ -122,7 +154,9 @@ export default function RepoBrowserScreen() {
       <View style={styles.infoBar}>
         <Text style={styles.branchLabel}>{branch || repo?.branch || 'main'}</Text>
         {currentPath ? (
-          <Text style={styles.breadcrumb} numberOfLines={1}>/{currentPath}</Text>
+          <Text style={styles.breadcrumb} numberOfLines={1}>
+            /{currentPath}
+          </Text>
         ) : null}
         <View style={styles.statusChips}>
           <GitStatusChip status={gitStatus} />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+
 import { GitStatusResult } from '../api/gitClient';
 
 interface GitStatusChipProps {
