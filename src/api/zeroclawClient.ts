@@ -1,6 +1,6 @@
 import { Message, ChatResponse } from './types';
 
-export async function pingZeroClaw(baseUrl: string, apiKey?: string): Promise<boolean> {
+export async function pingZeroClaw(baseUrl: string, _apiKey?: string): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       const wsUrl = baseUrl.replace(/\/+$/, '').replace(/^http/, 'ws') + '/acp';
@@ -48,7 +48,7 @@ export async function pingZeroClaw(baseUrl: string, apiKey?: string): Promise<bo
 
 export async function* streamZeroClawChat(
   baseUrl: string,
-  apiKey: string | undefined,
+  _apiKey: string | undefined,
   messages: Message[]
 ): AsyncGenerator<ChatResponse, void, unknown> {
   const wsUrl = baseUrl.replace(/\/+$/, '').replace(/^http/, 'ws') + '/acp';
@@ -61,12 +61,13 @@ export async function* streamZeroClawChat(
   // We'll send the last message as the prompt for now.
   const lastMessage = messages[messages.length - 1].content;
 
-  const queue: any[] = [];
-  let resolveNext: ((value: any) => void) | null = null;
+  const queue: ChatResponse[] = [];
+  let resolveNext: ((value: { value: ChatResponse | undefined; done: boolean }) => void) | null =
+    null;
   let finished = false;
-  let error: any = null;
+  let streamError: Error | null = null;
 
-  const push = (val: any) => {
+  const push = (val: ChatResponse) => {
     if (resolveNext) {
       resolveNext({ value: val, done: false });
       resolveNext = null;
@@ -143,14 +144,14 @@ export async function* streamZeroClawChat(
         finish();
       }
     } catch (e) {
-      error = e;
+      streamError = e instanceof Error ? e : new Error(String(e));
       ws.close();
       finish();
     }
   };
 
-  ws.onerror = (e) => {
-    error = new Error('WebSocket error');
+  ws.onerror = () => {
+    streamError = new Error('WebSocket error');
     finish();
   };
 
@@ -160,17 +161,19 @@ export async function* streamZeroClawChat(
 
   while (true) {
     if (queue.length > 0) {
-      yield queue.shift();
+      yield queue.shift()!;
       continue;
     }
     if (finished) break;
 
-    const next = await new Promise<any>((resolve) => {
-      resolveNext = resolve;
-    });
+    const next = await new Promise<{ value: ChatResponse | undefined; done: boolean }>(
+      (resolve) => {
+        resolveNext = resolve;
+      }
+    );
     if (next.done) break;
-    yield next.value;
+    if (next.value) yield next.value;
   }
 
-  if (error) throw error;
+  if (streamError) throw streamError;
 }
