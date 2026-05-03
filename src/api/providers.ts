@@ -1,7 +1,7 @@
 /**
  * AI Providers Module
  * Unified provider system for all AI services
- * 
+ *
  * Supported Providers:
  * - Ollama Cloud: Bearer token authentication
  * - Local Ollama: Optional Bearer token authentication
@@ -73,12 +73,7 @@ export type {
   JulesSourceContext,
 } from './types';
 
-export {
-  getSources,
-  createSession,
-  approvePlan,
-  sendMessage,
-} from './julesApiService';
+export { getSources, createSession, approvePlan, sendMessage } from './julesApiService';
 
 // Legacy Jules types
 export type {

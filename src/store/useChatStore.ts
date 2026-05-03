@@ -3,8 +3,8 @@ import { create } from 'zustand';
 import { Conversation, StoredMessage } from '../api/types';
 import * as db from '../db/schema';
 
-const AUTO_DELETE_KEY = 'ollama-auto-delete-days';
-const AUTO_SAVE_KEY = 'ollama-auto-save-enabled';
+//
+//
 
 interface ChatStore {
   conversations: Conversation[];

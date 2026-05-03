@@ -9,19 +9,6 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 import {
-  ProviderConfig,
-  ProviderFactoryConfig,
-  ProviderStatus,
-  AnyProviderInstance,
-  PROVIDER_STORAGE_KEYS,
-  DEFAULT_OLLAMA_CLOUD_PROVIDER,
-  DEFAULT_OLLAMA_LOCAL_PROVIDER,
-  DEFAULT_JULES_PROVIDER,
-  isOllamaCloudProvider,
-  isOllamaLocalProvider,
-  isJulesProvider,
-} from '../api/providerTypes';
-import {
   ProviderFactory,
   saveProviderApiKey,
   getProviderApiKey,
@@ -29,6 +16,16 @@ import {
   testProviderConnection as testProviderConn,
   testConnectionWithKey,
 } from '../api/providerFactory';
+import {
+  ProviderConfig,
+  ProviderFactoryConfig,
+  ProviderStatus,
+  AnyProviderInstance,
+  PROVIDER_STORAGE_KEYS,
+  DEFAULT_OLLAMA_CLOUD_PROVIDER,
+  DEFAULT_OLLAMA_LOCAL_PROVIDER,
+  isJulesProvider,
+} from '../api/providerTypes';
 
 const storage = new MMKV();
 
@@ -192,11 +189,12 @@ export const useProviderStore = create<ProviderStore>()(
         if (factoryConfig.apiKey) {
           const isConnected = await testConnectionWithKey(
             newConfig.type,
-            factoryConfig.url || (
-              newConfig.type === 'ollama-cloud' ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url :
-              newConfig.type === 'ollama-local' ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url :
-              ''
-            ),
+            factoryConfig.url ||
+              (newConfig.type === 'ollama-cloud'
+                ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url
+                : newConfig.type === 'ollama-local'
+                  ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url
+                  : ''),
             factoryConfig.apiKey
           );
           newConfig.isConnected = isConnected;
@@ -249,7 +247,8 @@ export const useProviderStore = create<ProviderStore>()(
 
         // Find new active provider if current is being removed
         const newProviders = providers.filter((p) => p.id !== id);
-        const newActiveId = activeProviderId === id ? (newProviders[0]?.id ?? null) : activeProviderId;
+        const newActiveId =
+          activeProviderId === id ? (newProviders[0]?.id ?? null) : activeProviderId;
 
         set({
           providers: newProviders,
@@ -311,9 +310,7 @@ export const useProviderStore = create<ProviderStore>()(
           const errorMessage = error instanceof Error ? error.message : String(error);
 
           set((state) => ({
-            providers: state.providers.map((p) =>
-              p.id === id ? { ...p, isConnected: false } : p
-            ),
+            providers: state.providers.map((p) => (p.id === id ? { ...p, isConnected: false } : p)),
             connectionStatus: {
               ...state.connectionStatus,
               [id]: {
@@ -366,9 +363,7 @@ export const useProviderStore = create<ProviderStore>()(
 
         // Update provider state
         set((state) => ({
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: true } : p
-          ),
+          providers: state.providers.map((p) => (p.id === id ? { ...p, isConfigured: true } : p)),
           connectionStatus: {
             ...state.connectionStatus,
             [id]: {

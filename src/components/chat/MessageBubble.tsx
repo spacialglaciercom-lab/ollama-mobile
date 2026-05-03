@@ -28,11 +28,7 @@ export function MessageBubble({
 
   if (isSystem) {
     return (
-      <TouchableOpacity
-        onLongPress={handleLongPress}
-        activeOpacity={0.8}
-        delayLongPress={300}
-      >
+      <TouchableOpacity onLongPress={handleLongPress} activeOpacity={0.8} delayLongPress={300}>
         <View
           style={[
             styles.bubbleWrap,
@@ -64,12 +60,7 @@ export function MessageBubble({
           selected && styles.bubbleWrapSelected,
         ]}
       >
-        <View
-          style={[
-            styles.bubble,
-            isUser ? styles.bubbleUser : styles.bubbleAssistant,
-          ]}
-        >
+        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
           <Text style={styles.bubbleText}>{content}</Text>
           {isStreaming && isAssistant && <Text style={styles.cursor}>▌</Text>}
         </View>
