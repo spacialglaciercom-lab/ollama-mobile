@@ -1,14 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+
 import { useChatStore } from '../src/store/useChatStore';
 import { useModelStore } from '../src/store/useModelStore';
 import { useServerStore } from '../src/store/useServerStore';
@@ -47,7 +41,8 @@ export default function HomeScreen() {
   const formatTime = (ts: number) => {
     const d = new Date(ts);
     const now = new Date();
-    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === now.toDateString())
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 

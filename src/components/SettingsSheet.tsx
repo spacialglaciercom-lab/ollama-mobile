@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  FlatList,
-  StyleSheet,
-} from 'react-native';
-import { useServerStore, Server } from '../store/useServerStore';
+import { View, Text, TextInput, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
+
 import { pingServer } from '../api/ollamaClient';
+import { ServerType } from '../api/types';
+import { pingZeroClaw } from '../api/zeroclawClient';
+import { useServerStore, Server } from '../store/useServerStore';
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -24,6 +19,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [type, setType] = useState<ServerType>('ollama');
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
 
@@ -32,6 +28,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setName('');
     setUrl('');
     setApiKey('');
+    setType('ollama');
     setShowForm(true);
   };
 
@@ -40,6 +37,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setName(server.name);
     setUrl(server.url);
     setApiKey(server.apiKey ?? '');
+    setType(server.type);
     setShowForm(true);
   };
 
@@ -51,6 +49,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
         url: url.trim(),
         apiKey: apiKey.trim() || undefined,
         isCloud: url.trim().includes('ollama.com'),
+        type,
       });
     } else {
       addServer({
@@ -58,6 +57,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
         url: url.trim(),
         apiKey: apiKey.trim() || undefined,
         isCloud: url.trim().includes('ollama.com'),
+        type,
       });
     }
     setShowForm(false);
@@ -66,7 +66,12 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const handlePing = async (server: Server) => {
     setPinging(server.id);
     setPingResult(null);
-    const ok = await pingServer(server.url, server.apiKey);
+    let ok = false;
+    if (server.type === 'zeroclaw') {
+      ok = await pingZeroClaw(server.url, server.apiKey);
+    } else {
+      ok = await pingServer(server.url, server.apiKey);
+    }
     setPinging(null);
     setPingResult({ id: server.id, ok });
   };
@@ -78,10 +83,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
 
   const renderServer = ({ item }: { item: Server }) => (
     <TouchableOpacity
-      style={[
-        styles.serverRow,
-        item.id === activeServerId && styles.serverRowActive,
-      ]}
+      style={[styles.serverRow, item.id === activeServerId && styles.serverRowActive]}
       onPress={() => setActive(item.id)}
       onLongPress={() => openEdit(item)}
       activeOpacity={0.6}
@@ -90,7 +92,10 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
         <View
           style={[
             styles.serverDot,
-            { backgroundColor: pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158' },
+            {
+              backgroundColor:
+                pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158',
+            },
           ]}
         />
       </View>
@@ -98,16 +103,14 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
         <View style={styles.serverNameRow}>
           <Text style={styles.serverName}>{item.name}</Text>
           {item.isCloud && <Text style={styles.cloudBadge}>Cloud</Text>}
+          <Text style={styles.typeBadge}>{item.type === 'zeroclaw' ? 'ZeroClaw' : 'Ollama'}</Text>
         </View>
-        <Text style={styles.serverUrl} numberOfLines={1}>{item.url}</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.pingBtn}
-        onPress={() => handlePing(item)}
-      >
-        <Text style={styles.pingText}>
-          {pinging === item.id ? '...' : 'Ping'}
+        <Text style={styles.serverUrl} numberOfLines={1}>
+          {item.url}
         </Text>
+      </View>
+      <TouchableOpacity style={styles.pingBtn} onPress={() => handlePing(item)}>
+        <Text style={styles.pingText}>{pinging === item.id ? '...' : 'Ping'}</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -146,18 +149,61 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
             </>
           ) : (
             <View style={styles.form}>
-              <Text style={styles.formTitle}>
-                {editingServer ? 'Edit Server' : 'Add Server'}
-              </Text>
+              <Text style={styles.formTitle}>{editingServer ? 'Edit Server' : 'Add Server'}</Text>
 
               <View style={styles.formSection}>
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>NAME</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="My Server"
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                  />
+                </View>
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>TYPE</Text>
+                  <View style={styles.typeToggle}>
+                    <TouchableOpacity
+                      style={[styles.typeOption, type === 'ollama' && styles.typeOptionActive]}
+                      onPress={() => setType('ollama')}
+                    >
+                      <Text
+                        style={[
+                          styles.typeOptionText,
+                          type === 'ollama' && styles.typeOptionTextActive,
+                        ]}
+                      >
+                        Ollama
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.typeOption, type === 'zeroclaw' && styles.typeOptionActive]}
+                      onPress={() => setType('zeroclaw')}
+                    >
+                      <Text
+                        style={[
+                          styles.typeOptionText,
+                          type === 'zeroclaw' && styles.typeOptionTextActive,
+                        ]}
+                      >
+                        ZeroClaw
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.formSep} />
                 <View style={styles.formGroup}>
                   <Text style={styles.fieldLabel}>URL</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={url}
                     onChangeText={setUrl}
-                    placeholder="http://192.168.1.x:11434"
+                    placeholder={
+                      type === 'zeroclaw' ? 'http://192.168.1.x:8080' : 'http://192.168.1.x:11434'
+                    }
                     placeholderTextColor="rgba(235,235,245,0.18)"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -183,14 +229,25 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               </View>
 
               <TouchableOpacity style={styles.connectBtn} onPress={handleSave}>
-                <Text style={styles.connectBtnText}>
-                  {editingServer ? 'Save' : 'Add Server'}
-                </Text>
+                <Text style={styles.connectBtnText}>{editingServer ? 'Save' : 'Add Server'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => setShowForm(false)}>
                 <Text style={styles.cancelLink}>Cancel</Text>
               </TouchableOpacity>
+
+              {editingServer && editingServer.id !== 'ollama-cloud' && (
+                <TouchableOpacity
+                  onPress={() => {
+                    handleDelete(editingServer);
+                    setShowForm(false);
+                  }}
+                >
+                  <Text style={[styles.cancelLink, { color: '#ff453a', marginTop: 24 }]}>
+                    Delete Server
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -274,6 +331,15 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  typeBadge: {
+    color: '#0a84ff',
+    fontSize: 11,
+    fontWeight: '600',
+    backgroundColor: 'rgba(10,132,255,0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   serverUrl: { color: 'rgba(235,235,245,0.3)', fontSize: 13, marginTop: 2 },
   pingBtn: {
     backgroundColor: '#2c2c2e',
@@ -311,6 +377,30 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: '#fff',
     padding: 0,
+  },
+  typeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#2c2c2e',
+    borderRadius: 8,
+    padding: 2,
+    marginTop: 4,
+  },
+  typeOption: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  typeOptionActive: {
+    backgroundColor: '#3a3a3c',
+  },
+  typeOptionText: {
+    color: 'rgba(235,235,245,0.3)',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  typeOptionTextActive: {
+    color: '#fff',
   },
   formSep: {
     height: StyleSheet.hairlineWidth,

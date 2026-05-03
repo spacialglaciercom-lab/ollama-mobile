@@ -20,6 +20,6 @@ export const createVerificationHarness = <T, R>(
       const isValid = contract.invariant(contract.input, output);
       console.log(`[Verification] ${name}: ${isValid ? 'PASSED' : 'FAILED'}`);
       return isValid;
-    }
+    },
   };
 };

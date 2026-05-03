@@ -65,11 +65,14 @@ export interface PullResponse {
   completed?: number;
 }
 
+export type ServerType = 'ollama' | 'zeroclaw';
+
 export interface ServerInfo {
   id: string;
   name: string;
   url: string;
   apiKey?: string;
+  type: ServerType;
   isConnected: boolean;
   lastPing?: number;
 }
@@ -95,4 +98,38 @@ export interface ChatState {
   conversations: Conversation[];
   activeConversationId: string | null;
   messages: StoredMessage[];
+}
+
+// ZeroClaw ACP Types
+export interface ACPRequest {
+  jsonrpc: '2.0';
+  id: string | number;
+  method: string;
+  params?: any;
+}
+
+export interface ACPResponse {
+  jsonrpc: '2.0';
+  id?: string | number;
+  result?: any;
+  error?: any;
+  method?: string;
+  params?: any;
+}
+
+export interface ACPSessionUpdate {
+  sessionId: string;
+  update: {
+    sessionUpdate: 'agent_message_chunk' | 'agent_thought_chunk' | 'tool_call' | 'tool_call_update';
+    content?: {
+      type: 'text';
+      text: string;
+    };
+    toolCallId?: string;
+    title?: string;
+    kind?: string;
+    status?: 'pending' | 'finished';
+    rawInput?: any;
+    rawOutput?: any;
+  };
 }

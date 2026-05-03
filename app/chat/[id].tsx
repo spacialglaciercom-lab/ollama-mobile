@@ -50,6 +50,25 @@ export default function ChatScreen() {
   const [systemPromptText, setSystemPromptText] = useState('');
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
+
+  const renderItem = useCallback(
+    ({ item }: { item: StoredMessage }) => {
+      if (item.id === 'streaming') {
+        return <StreamingBubble content={item.content} />;
+      }
+      return (
+        <MessageBubble
+          role={item.role}
+          content={item.content}
+          selected={selectedMessage?.id === item.id}
+          onLongPress={() => setSelectedMessage(item)}
+        />
+      );
+    },
+    [selectedMessage?.id]
+  );
+
+  const keyExtractor = useCallback((item: StoredMessage) => item.id, []);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
   const streamingContentRef = useRef('');
@@ -128,7 +147,7 @@ export default function ChatScreen() {
     localMessages
       .filter((m) => m.role !== 'system')
       .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: 'user', content: text });
+    apiMessages.push({ role: m.role, content: text });
 
     setStreamingContent('');
 
@@ -210,7 +229,7 @@ export default function ChatScreen() {
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
-          <Text style={styles.modelPillCaret}>▾</Text>
+          <Text style={styles.modelPillCaret}>▼</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -223,7 +242,7 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Popover Menu */}
+      {/* Menu Popover */}
       {showMenu && (
         <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
           <View style={styles.menuPopover}>

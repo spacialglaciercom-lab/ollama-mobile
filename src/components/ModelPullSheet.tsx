@@ -1,13 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  FlatList,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+
 import { useServerStore } from '../store/useServerStore';
 
 interface ModelPullSheetProps {
@@ -43,9 +36,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(activeServer.apiKey
-            ? { Authorization: `Bearer ${activeServer.apiKey}` }
-            : {}),
+          ...(activeServer.apiKey ? { Authorization: `Bearer ${activeServer.apiKey}` } : {}),
         },
         body: JSON.stringify({ name: modelName, stream: true }),
         signal: abortRef.current.signal,
@@ -173,14 +164,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
           {!pulling && (
             <View style={styles.suggestions}>
               <Text style={styles.suggestionsLabel}>POPULAR</Text>
-              {[
-                'llama3.2',
-                'mistral',
-                'phi4',
-                'gemma2',
-                'deepseek-r1',
-                'qwen2.5',
-              ].map((name) => (
+              {['llama3.2', 'mistral', 'phi4', 'gemma2', 'deepseek-r1', 'qwen2.5'].map((name) => (
                 <TouchableOpacity
                   key={name}
                   style={styles.suggestionRow}

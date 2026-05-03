@@ -19,9 +19,33 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   if (role === 'system') {
     return (
-      <View style={styles.systemContainer}>
-        <Text style={styles.systemText}>{content}</Text>
-      </View>
+      <TouchableOpacity
+        onLongPress={onLongPress}
+        activeOpacity={0.8}
+        delayLongPress={300}
+        disabled={isSystem}
+      >
+        <View
+          style={[
+            styles.bubbleWrap,
+            isUser
+              ? styles.bubbleWrapUser
+              : isSystem
+                ? styles.bubbleWrapSystem
+                : styles.bubbleWrapAssistant,
+            selected && styles.bubbleWrapSelected,
+          ]}
+        >
+          <View
+            style={[
+              styles.bubble,
+              isUser ? styles.bubbleUser : isSystem ? styles.bubbleSystem : styles.bubbleAssistant,
+            ]}
+          >
+            <Text style={isSystem ? styles.bubbleSystemText : styles.bubbleText}>{content}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
     );
   }
 
@@ -58,38 +82,29 @@ export function MessageBubble({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    maxWidth: '85%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    marginBottom: 8,
-  },
-  userContainer: {
-    backgroundColor: '#1a3a5c',
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
-  },
-  assistantContainer: {
-    backgroundColor: '#1c1c1e',
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
-  },
-  selectedContainer: {
+  bubbleWrap: { marginBottom: 8 },
+  bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
+  bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
+  bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%' },
+  bubbleWrapSelected: {
     borderWidth: 1.5,
     borderColor: '#30d158',
-    backgroundColor: 'rgba(44,44,46,0.9)',
+    borderRadius: 18,
   },
-  text: { fontSize: 15, lineHeight: 21 },
-  userText: { color: '#fff' },
-  assistantText: { color: '#e5e5e5' },
-  systemContainer: {
+  bubble: { paddingHorizontal: 14, paddingVertical: 10 },
+  bubbleUser: {
+    backgroundColor: '#1a3a5c',
+    borderRadius: 18,
+    borderBottomRightRadius: 4,
+  },
+  bubbleAssistant: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+  },
+  bubbleSystem: {
     backgroundColor: 'rgba(48,209,88,0.08)',
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: 12,
-    marginBottom: 8,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(48,209,88,0.2)',
   },
