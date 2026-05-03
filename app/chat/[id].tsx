@@ -1,6 +1,7 @@
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -19,7 +20,6 @@ import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
-import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -100,13 +100,13 @@ export default function ChatScreen() {
     }
   }, [
     id,
-    paramModel,
-    selectedModel,
-    createConversation,
-    setActiveConversation,
-    loadMessages,
     conversations,
+    createConversation,
+    loadMessages,
+    paramModel,
     selectModel,
+    selectedModel,
+    setActiveConversation,
   ]);
 
   useEffect(() => {
@@ -136,6 +136,8 @@ export default function ChatScreen() {
     // Add user message
     const userMsg = await addMessage(convId, 'user', text);
     setLocalMessages((prev) => [...prev, userMsg]);
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // Build messages array for API
     const apiMessages: { role: string; content: string }[] = [];
@@ -183,23 +185,20 @@ export default function ChatScreen() {
     updateConversationTitle,
   ]);
 
-  const allMessages = useMemo(
-    () => [
-      ...localMessages,
-      ...(streamingContent
-        ? [
-            {
-              id: 'streaming',
-              conversationId: conversationRef.current ?? '',
-              role: 'assistant' as const,
-              content: streamingContent,
-              createdAt: Date.now(),
-            },
-          ]
-        : []),
-    ],
-    [localMessages, streamingContent]
-  );
+  const allMessages = [
+    ...localMessages,
+    ...(streamingContent
+      ? [
+          {
+            id: 'streaming',
+            conversationId: conversationRef.current ?? '',
+            role: 'assistant' as const,
+            content: streamingContent,
+            createdAt: Date.now(),
+          },
+        ]
+      : []),
+  ];
 
   const currentModel = selectedModel || paramModel || 'Select model';
 
@@ -212,18 +211,33 @@ export default function ChatScreen() {
 
       {/* Nav Bar */}
       <View style={styles.navBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.navBtn}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
           <Text style={styles.navBtnText}>‹ Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.modelPill} onPress={() => setShowModelPicker(true)}>
+        <TouchableOpacity
+          style={styles.modelPill}
+          onPress={() => setShowModelPicker(true)}
+          accessibilityLabel={`Current model: ${currentModel}. Tap to change.`}
+          accessibilityRole="button"
+        >
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
           <Text style={styles.modelPillCaret}>▼</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.navBtn}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          onPress={() => setShowMenu(!showMenu)}
+          accessibilityLabel="More options"
+          accessibilityRole="button"
+        >
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
@@ -282,9 +296,16 @@ export default function ChatScreen() {
       <FlatList
         ref={flatListRef}
         data={allMessages}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        extraData={selectedMessage?.id}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <MessageBubble
+            role={item.role}
+            content={item.content}
+            selected={selectedMessage?.id === item.id}
+            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
+            isStreaming={item.id === 'streaming' && streaming}
+          />
+        )}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
@@ -339,6 +360,9 @@ export default function ChatScreen() {
             ]}
             onPress={handleSend}
             disabled={!inputText.trim() || streaming}
+            accessibilityLabel="Send message"
+            accessibilityRole="button"
+            accessibilityHint="Sends your message to the AI"
           >
             <Text style={styles.sendBtnIcon}>↑</Text>
           </TouchableOpacity>

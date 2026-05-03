@@ -1,4 +1,5 @@
-import React, { memo } from 'react';
+import * as Haptics from 'expo-haptics';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface MessageBubbleProps {
@@ -6,16 +7,17 @@ interface MessageBubbleProps {
   content: string;
   selected?: boolean;
   onLongPress?: () => void;
+  isStreaming?: boolean;
 }
 
-/**
- * Memoized MessageBubble component to prevent unnecessary re-renders in large chat lists.
- */
-export const MessageBubble = memo(
-  ({ role, content, selected, onLongPress }: MessageBubbleProps) => {
-    const isUser = role === 'user';
-    const isSystem = role === 'system';
-
+export function MessageBubble({
+  role,
+  content,
+  selected,
+  onLongPress,
+  isStreaming,
+}: MessageBubbleProps) {
+  if (role === 'system') {
     return (
       <TouchableOpacity
         onLongPress={onLongPress}
@@ -46,7 +48,38 @@ export const MessageBubble = memo(
       </TouchableOpacity>
     );
   }
-);
+
+  const isUser = role === 'user';
+
+  const handleLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onLongPress?.();
+  };
+
+  return (
+    <TouchableOpacity
+      onLongPress={handleLongPress}
+      activeOpacity={0.8}
+      delayLongPress={300}
+      accessibilityRole="button"
+      accessibilityLabel={`Message from ${role}: ${content}`}
+      accessibilityHint="Long press for more actions"
+    >
+      <View
+        style={[
+          styles.container,
+          isUser ? styles.userContainer : styles.assistantContainer,
+          selected && styles.selectedContainer,
+        ]}
+      >
+        <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
+          {content}
+        </Text>
+        {isStreaming && role === 'assistant' && <Text style={styles.cursor}>▌</Text>}
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 const styles = StyleSheet.create({
   bubbleWrap: { marginBottom: 8 },
@@ -75,11 +108,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(48,209,88,0.2)',
   },
-  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  bubbleSystemText: {
-    color: 'rgba(48,209,88,0.7)',
-    fontSize: 13,
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
+  systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic' },
+  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
 });
