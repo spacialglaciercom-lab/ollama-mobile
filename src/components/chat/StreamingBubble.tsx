@@ -1,31 +1,39 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 interface StreamingBubbleProps {
-  text: string;
-  isStreaming: boolean;
+  content: string;
 }
 
-export function StreamingBubble({ text, isStreaming }: StreamingBubbleProps) {
+/**
+ * Memoized StreamingBubble component to minimize re-renders during active token streaming.
+ */
+export const StreamingBubble = memo(({ content }: StreamingBubbleProps) => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{text}</Text>
-      {isStreaming && <Text style={styles.cursor}>▌</Text>}
+    <View style={styles.bubbleWrapAssistant}>
+      <View style={styles.bubbleAssistant}>
+        <Text style={styles.bubbleText}>
+          {content}
+          <Text style={styles.cursor}>▌</Text>
+        </Text>
+      </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  container: {
-    maxWidth: '85%',
-    backgroundColor: '#1c1c1e',
+  bubbleWrapAssistant: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
+    maxWidth: '80%',
     marginBottom: 8,
   },
-  text: { color: '#e5e5e5', fontSize: 15, lineHeight: 21 },
-  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
+  bubbleAssistant: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  cursor: { color: '#30d158', fontSize: 14 },
 });

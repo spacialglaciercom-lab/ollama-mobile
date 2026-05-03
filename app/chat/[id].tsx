@@ -1,6 +1,6 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -17,8 +17,9 @@ import {
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
-import { ModelPullSheet } from '../../src/components/ModelPullSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
+import { MessageBubble } from '../../src/components/chat/MessageBubble';
+import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -35,7 +36,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { models, selectedModel, selectModel, fetchModels } = useModelStore();
+  const { selectedModel, selectModel, fetchModels } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -49,6 +50,25 @@ export default function ChatScreen() {
   const [systemPromptText, setSystemPromptText] = useState('');
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
+
+  const renderItem = useCallback(
+    ({ item }: { item: StoredMessage }) => {
+      if (item.id === 'streaming') {
+        return <StreamingBubble content={item.content} />;
+      }
+      return (
+        <MessageBubble
+          role={item.role}
+          content={item.content}
+          selected={selectedMessage?.id === item.id}
+          onLongPress={() => setSelectedMessage(item)}
+        />
+      );
+    },
+    [selectedMessage?.id]
+  );
+
+  const keyExtractor = useCallback((item: StoredMessage) => item.id, []);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
   const streamingContentRef = useRef('');
@@ -78,7 +98,16 @@ export default function ChatScreen() {
         }
       });
     }
-  }, [id]);
+  }, [
+    id,
+    paramModel,
+    selectedModel,
+    createConversation,
+    setActiveConversation,
+    loadMessages,
+    conversations,
+    selectModel,
+  ]);
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -116,7 +145,7 @@ export default function ChatScreen() {
     localMessages
       .filter((m) => m.role !== 'system')
       .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: 'user', content: text });
+    apiMessages.push({ role: m.role, content: text });
 
     setStreamingContent('');
 
@@ -151,22 +180,26 @@ export default function ChatScreen() {
     sendMessage,
     systemPromptText,
     showSystemPrompt,
+    updateConversationTitle,
   ]);
 
-  const allMessages = [
-    ...localMessages,
-    ...(streamingContent
-      ? [
-          {
-            id: 'streaming',
-            conversationId: conversationRef.current ?? '',
-            role: 'assistant' as const,
-            content: streamingContent,
-            createdAt: Date.now(),
-          },
-        ]
-      : []),
-  ];
+  const allMessages = useMemo(
+    () => [
+      ...localMessages,
+      ...(streamingContent
+        ? [
+            {
+              id: 'streaming',
+              conversationId: conversationRef.current ?? '',
+              role: 'assistant' as const,
+              content: streamingContent,
+              createdAt: Date.now(),
+            },
+          ]
+        : []),
+    ],
+    [localMessages, streamingContent]
+  );
 
   const currentModel = selectedModel || paramModel || 'Select model';
 
@@ -187,15 +220,15 @@ export default function ChatScreen() {
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
-          <Text style={styles.modelPillCaret}>▾</Text>
+          <Text style={styles.modelPillCaret}>▼</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(!showMenu)}>
+        <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.navBtn}>
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Popover Menu */}
+      {/* Menu Popover */}
       {showMenu && (
         <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
           <View style={styles.menuPopover}>
@@ -249,42 +282,9 @@ export default function ChatScreen() {
       <FlatList
         ref={flatListRef}
         data={allMessages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
-            delayLongPress={300}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.bubbleWrap,
-                item.role === 'user'
-                  ? styles.bubbleWrapUser
-                  : item.role === 'system'
-                    ? styles.bubbleWrapSystem
-                    : styles.bubbleWrapAssistant,
-                selectedMessage?.id === item.id && styles.bubbleWrapSelected,
-              ]}
-            >
-              <View
-                style={[
-                  styles.bubble,
-                  item.role === 'user'
-                    ? styles.bubbleUser
-                    : item.role === 'system'
-                      ? styles.bubbleSystem
-                      : styles.bubbleAssistant,
-                ]}
-              >
-                <Text style={item.role === 'system' ? styles.bubbleSystemText : styles.bubbleText}>
-                  {item.content}
-                </Text>
-                {item.id === 'streaming' && streaming && <Text style={styles.cursor}>▌</Text>}
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        extraData={selectedMessage?.id}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
