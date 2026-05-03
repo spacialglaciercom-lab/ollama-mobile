@@ -31,7 +31,8 @@ export async function getSources(apiKey: string): Promise<JulesSource[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
+      const statusText = response.status === 401 ? 'Unauthorized' : (response.status === 404 ? 'Not Found' : response.statusText);
+      throw new Error(`Failed to fetch sources: ${response.status} ${statusText}`);
     }
 
     const data = (await response.json()) as JulesSourcesResponse;
@@ -78,7 +79,8 @@ export async function createSession(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
+      const statusText = response.status === 400 ? 'Bad Request' : response.statusText;
+      throw new Error(`Failed to create session: ${response.status} ${statusText}`);
     }
 
     return (await response.json()) as JulesSessionCreateResponse;
@@ -103,7 +105,8 @@ export async function approvePlan(apiKey: string, sessionId: string): Promise<Ju
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to approve plan: ${response.status} ${response.statusText}`);
+      const statusText = response.status === 403 ? 'Forbidden' : (response.status === 404 ? 'Not Found' : response.statusText);
+      throw new Error(`Failed to approve plan: ${response.status} ${statusText}`);
     }
 
     return (await response.json()) as JulesApprovePlanResponse;
@@ -138,7 +141,8 @@ export async function sendMessage(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
+      const statusText = response.status === 500 ? 'Internal Server Error' : response.statusText;
+      throw new Error(`Failed to send message: ${response.status} ${statusText}`);
     }
 
     return (await response.json()) as JulesSendMessageResponse;

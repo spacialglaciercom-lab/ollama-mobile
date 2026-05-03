@@ -59,7 +59,13 @@ function redactSecrets(obj: any): any {
   if (obj !== null && typeof obj === 'object') {
     const redacted: Record<string, any> = {};
     for (const [key, value] of Object.entries(obj)) {
-      redacted[key] = redactSecrets(value);
+      // Check if key itself looks like a secret name
+      const isSecretKey = /^(api[_-]?key|apikey|token|password|passwd|pwd|secret)$/i.test(key);
+      if (isSecretKey && typeof value === 'string' && value.length > 3) {
+        redacted[key] = '[REDACTED]';
+      } else {
+        redacted[key] = redactSecrets(value);
+      }
     }
     return redacted;
   }

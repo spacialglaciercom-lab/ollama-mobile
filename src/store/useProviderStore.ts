@@ -225,7 +225,7 @@ export const useProviderStore = create<ProviderStore>()(
           ...providers[existingIndex],
           ...updates,
           updatedAt: Date.now(),
-        };
+        } as ProviderConfig;
 
         set((state) => ({
           providers: [

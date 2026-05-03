@@ -121,19 +121,28 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sources</Text>
-        <Button title={isLoading ? 'Loading...' : 'Fetch Sources'} onPress={handleFetchSources} disabled={isLoading} />
+        <Button
+          testID="fetch-sources-button"
+          title={isLoading ? 'Loading...' : 'Fetch Sources'}
+          onPress={handleFetchSources}
+          disabled={isLoading}
+        />
         
         {sources.length > 0 && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Select Source</Text>
             <View style={styles.pickerContainer}>
-              <Text style={[styles.pickerText, selectedSource ? styles.pickerTextSelected : styles.pickerTextEmpty]}>
+              <Text
+                testID="selected-source-text"
+                style={[styles.pickerText, selectedSource ? styles.pickerTextSelected : styles.pickerTextEmpty]}
+              >
                 {selectedSource || 'Select a source...'}
               </Text>
             </View>
             <ScrollView style={styles.sourceList} nestedScrollEnabled={true}>
               {sources.map((source) => (
                 <Button
+                  testID={`source-item-${source}`}
                   key={source}
                   title={source}
                   onPress={() => setSelectedSource(source)}
@@ -150,6 +159,7 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Prompt</Text>
           <TextInput
+            testID="prompt-input"
             style={[styles.input, styles.textArea]}
             value={prompt}
             onChangeText={setPrompt}
@@ -160,6 +170,7 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
           />
         </View>
         <Button
+          testID="create-session-button"
           title={isLoading ? 'Creating...' : 'Create Session'}
           onPress={handleCreateSession}
           disabled={isLoading || !selectedSource || !prompt}

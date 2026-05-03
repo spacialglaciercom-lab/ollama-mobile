@@ -20,6 +20,7 @@ import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
+import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -146,8 +147,8 @@ export default function ChatScreen() {
     }
     localMessages
       .filter((m) => m.role !== 'system')
-      .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: m.role, content: text });
+      .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
+    apiMessages.push({ role: 'user', content: text });
 
     setStreamingContent('');
 

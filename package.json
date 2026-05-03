@@ -12,11 +12,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "ajv-keywords": "^5.1.0",
     "buffer": "^6.0.3",
     "expo": "~52.0.0",
     "expo-blur": "~14.0.0",
     "expo-crypto": "~14.0.0",
-    "expo-file-system": "^55.0.16",
+    "expo-file-system": "^55.0.17",
     "expo-font": "~12.0.0",
     "expo-haptics": "~14.0.0",
     "expo-image-manipulator": "~12.0.0",
@@ -41,6 +42,7 @@
     "react-native-reanimated": "~3.6.0",
     "react-native-screens": "~3.31.0",
     "react-native-web": "~0.18.12",
+    "react-native-worklets-core": "^1.6.3",
     "tailwindcss": "^3.4.0",
     "zustand": "^4.4.7"
   },
