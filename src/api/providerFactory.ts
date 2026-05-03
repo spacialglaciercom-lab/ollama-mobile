@@ -7,15 +7,13 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+
+import { getSources, createSession as julesCreateSession } from './julesApiService';
 import {
   pingServer,
   fetchModels as ollamaFetchModels,
   streamChat as ollamaStreamChat,
 } from './ollamaClient';
-import {
-  getSources,
-  createSession as julesCreateSession,
-} from './julesApiService';
 import {
   ProviderConfig,
   ProviderFactoryConfig,
@@ -128,7 +126,7 @@ export class ProviderFactory {
       testConnection: async () => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) return false;
-        
+
         try {
           // Test by pinging the server
           const isAlive = await pingServer(config.url, apiKey);
@@ -141,19 +139,19 @@ export class ProviderFactory {
       getModels: async () => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) throw new Error('API key not found');
-        
+
         const response = await ollamaFetchModels(config.url, apiKey);
         return response.models;
       },
       chat: async (messages: any[], model?: string) => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) throw new Error('API key not found');
-        
+
         const targetModel = model || config.defaultModel || 'llama3';
-        
+
         // Collect all messages into a single stream
         const allMessages: any[] = [];
-        
+
         for await (const chunk of ollamaStreamChat(config.url, apiKey, {
           model: targetModel,
           messages,
@@ -161,7 +159,7 @@ export class ProviderFactory {
         })) {
           allMessages.push(chunk);
         }
-        
+
         return allMessages;
       },
     };
@@ -178,7 +176,7 @@ export class ProviderFactory {
       config,
       testConnection: async () => {
         const apiKey = await this.getApiKey(config.type, config.id);
-        
+
         try {
           // Test by pinging the server (local servers may not require API key)
           const isAlive = await pingServer(config.url, apiKey || undefined);
@@ -190,16 +188,16 @@ export class ProviderFactory {
       },
       getModels: async () => {
         const apiKey = await this.getApiKey(config.type, config.id);
-        
+
         const response = await ollamaFetchModels(config.url, apiKey || undefined);
         return response.models;
       },
       chat: async (messages: any[], model?: string) => {
         const apiKey = await this.getApiKey(config.type, config.id);
         const targetModel = model || config.defaultModel || 'llama3';
-        
+
         const allMessages: any[] = [];
-        
+
         for await (const chunk of ollamaStreamChat(config.url, apiKey || undefined, {
           model: targetModel,
           messages,
@@ -207,7 +205,7 @@ export class ProviderFactory {
         })) {
           allMessages.push(chunk);
         }
-        
+
         return allMessages;
       },
     };
@@ -217,15 +215,13 @@ export class ProviderFactory {
    * Create a Jules provider instance
    * Uses X-Goog-Api-Key header authentication
    */
-  private static createJulesProvider(
-    config: JulesProviderConfig
-  ): JulesProviderInstance {
+  private static createJulesProvider(config: JulesProviderConfig): JulesProviderInstance {
     return {
       config,
       testConnection: async () => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) return false;
-        
+
         try {
           const sources = await getSources(apiKey);
           return Array.isArray(sources);
@@ -237,7 +233,7 @@ export class ProviderFactory {
       getSources: async () => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) throw new Error('API key not found');
-        
+
         return getSources(apiKey);
       },
       createSession: async (
@@ -248,7 +244,7 @@ export class ProviderFactory {
       ) => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) throw new Error('API key not found');
-        
+
         const response = await julesCreateSession(
           apiKey,
           sourceString,
@@ -256,7 +252,7 @@ export class ProviderFactory {
           startingBranch,
           title
         );
-        
+
         return {
           session: {
             id: response.session?.id || '',
@@ -287,10 +283,7 @@ export class ProviderFactory {
   /**
    * Get API key securely for a provider
    */
-  static async getApiKey(
-    type: ProviderConfig['type'],
-    providerId: string
-  ): Promise<string | null> {
+  static async getApiKey(type: ProviderConfig['type'], providerId: string): Promise<string | null> {
     const key = PROVIDER_SECURE_KEYS.API_KEY_PREFIX(type, providerId);
     return SecureStore.getItemAsync(key);
   }
@@ -298,10 +291,7 @@ export class ProviderFactory {
   /**
    * Remove API key for a provider
    */
-  static async removeApiKey(
-    type: ProviderConfig['type'],
-    providerId: string
-  ): Promise<void> {
+  static async removeApiKey(type: ProviderConfig['type'], providerId: string): Promise<void> {
     const key = PROVIDER_SECURE_KEYS.API_KEY_PREFIX(type, providerId);
     await SecureStore.deleteItemAsync(key);
   }

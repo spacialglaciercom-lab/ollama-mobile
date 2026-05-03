@@ -59,7 +59,7 @@ export async function createSession(
 ): Promise<JulesSessionCreateResponse> {
   try {
     const url = `${JULES_API_BASE}/sessions`;
-    
+
     const payload: JulesSessionCreateRequest = {
       prompt,
       sourceContext: {
@@ -93,10 +93,13 @@ export async function createSession(
  * @param apiKey - Jules API key
  * @param sessionId - The session ID to approve
  */
-export async function approvePlan(apiKey: string, sessionId: string): Promise<JulesApprovePlanResponse> {
+export async function approvePlan(
+  apiKey: string,
+  sessionId: string
+): Promise<JulesApprovePlanResponse> {
   try {
     const url = `${JULES_API_BASE}/sessions/${sessionId}:approvePlan`;
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: makeHeaders(apiKey),
@@ -126,7 +129,7 @@ export async function sendMessage(
 ): Promise<JulesSendMessageResponse> {
   try {
     const url = `${JULES_API_BASE}/sessions/${sessionId}:sendMessage`;
-    
+
     const payload: JulesSendMessageRequest = {
       prompt: message,
     };
