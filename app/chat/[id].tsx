@@ -192,18 +192,33 @@ export default function ChatScreen() {
 
       {/* Nav Bar */}
       <View style={styles.navBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.navBtn}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.navBtn}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
           <Text style={styles.navBtnText}>‹ Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.modelPill} onPress={() => setShowModelPicker(true)}>
+        <TouchableOpacity
+          style={styles.modelPill}
+          onPress={() => setShowModelPicker(true)}
+          accessibilityLabel={`Current model: ${currentModel}. Tap to change.`}
+          accessibilityRole="button"
+        >
           <Text style={styles.modelPillText} numberOfLines={1}>
             {currentModel}
           </Text>
           <Text style={styles.modelPillCaret}>▾</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(!showMenu)}>
+        <TouchableOpacity
+          style={styles.navBtn}
+          onPress={() => setShowMenu(!showMenu)}
+          accessibilityLabel="More options"
+          accessibilityRole="button"
+        >
           <Text style={styles.navBtnIcon}>···</Text>
         </TouchableOpacity>
       </View>
