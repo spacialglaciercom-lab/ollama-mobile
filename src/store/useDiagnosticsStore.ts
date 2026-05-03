@@ -33,9 +33,15 @@ interface DiagnosticsStore {
 
 // Secret redaction patterns
 const SECRET_PATTERNS = [
-  { regex: /(api[_-]?key|apikey)\s*[:=]\s*['"]?([a-zA-Z0-9]{20,})['"]?/gi, replacement: '$1: [REDACTED]' },
+  {
+    regex: /(api[_-]?key|apikey)\s*[:=]\s*['"]?([a-zA-Z0-9]{20,})['"]?/gi,
+    replacement: '$1: [REDACTED]',
+  },
   { regex: /(token)\s*[:=]\s*['"]?([a-zA-Z0-9\-_.]{20,})['"]?/gi, replacement: '$1: [REDACTED]' },
-  { regex: /(password|passwd|pwd)\s*[:=]\s*['"]?([^\s'"]{4,})['"]?/gi, replacement: '$1: [REDACTED]' },
+  {
+    regex: /(password|passwd|pwd)\s*[:=]\s*['"]?([^\s'"]{4,})['"]?/gi,
+    replacement: '$1: [REDACTED]',
+  },
   { regex: /(secret)\s*[:=]\s*['"]?([a-zA-Z0-9\-_]{16,})['"]?/gi, replacement: '$1: [REDACTED]' },
   { regex: /(Bearer\s+)([a-zA-Z0-9\-_.]+)/gi, replacement: '$1[REDACTED]' },
   { regex: /(sk-[a-zA-Z0-9]{48,})/gi, replacement: '[REDACTED]' }, // OpenAI-style keys
