@@ -37,7 +37,7 @@ export async function exportConversationAsMarkdown(
   // Write to file and share
   const filename = `${conversation.title.replace(/[^a-z0-9]/gi, '_')}_${date}.md`;
   const fileUri = `${FileSystem.documentDirectory}${filename}`;
-  
+
   await FileSystem.writeAsStringAsync(fileUri, markdown, {
     encoding: FileSystem.EncodingType.UTF8,
   });

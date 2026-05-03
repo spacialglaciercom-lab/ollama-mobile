@@ -52,24 +52,6 @@ export default function ChatScreen() {
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
 
-  const renderItem = useCallback(
-    ({ item }: { item: StoredMessage }) => {
-      if (item.id === 'streaming') {
-        return <StreamingBubble content={item.content} />;
-      }
-      return (
-        <MessageBubble
-          role={item.role}
-          content={item.content}
-          selected={selectedMessage?.id === item.id}
-          onLongPress={() => setSelectedMessage(item)}
-        />
-      );
-    },
-    [selectedMessage?.id]
-  );
-
-  const keyExtractor = useCallback((item: StoredMessage) => item.id, []);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
   const streamingContentRef = useRef('');
@@ -298,15 +280,19 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={allMessages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            role={item.role}
-            content={item.content}
-            selected={selectedMessage?.id === item.id}
-            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
-            isStreaming={item.id === 'streaming' && streaming}
-          />
-        )}
+        renderItem={({ item }) => {
+          if (item.id === 'streaming') {
+            return <StreamingBubble content={item.content} />;
+          }
+          return (
+            <MessageBubble
+              role={item.role}
+              content={item.content}
+              selected={selectedMessage?.id === item.id}
+              onLongPress={() => setSelectedMessage(item)}
+            />
+          );
+        }}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }

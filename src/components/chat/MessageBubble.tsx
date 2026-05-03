@@ -52,7 +52,9 @@ export function MessageBubble({
         ]}
       >
         <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-          <Text style={[styles.bubbleText, isUser ? styles.bubbleUserText : styles.bubbleAssistantText]}>
+          <Text
+            style={[styles.bubbleText, isUser ? styles.bubbleUserText : styles.bubbleAssistantText]}
+          >
             {content}
           </Text>
         </View>
