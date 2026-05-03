@@ -1,10 +1,11 @@
 import * as Haptics from 'expo-haptics';
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  thought?: string;
   selected?: boolean;
   onLongPress?: () => void;
   isStreaming?: boolean;
@@ -13,6 +14,7 @@ interface MessageBubbleProps {
 export function MessageBubble({
   role,
   content,
+  thought,
   selected,
   onLongPress,
   isStreaming,
@@ -20,6 +22,7 @@ export function MessageBubble({
   const isUser = role === 'user';
   const isAssistant = role === 'assistant';
   const isSystem = role === 'system';
+  const [showThought, setShowThought] = useState(false);
 
   const handleLongPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -52,6 +55,24 @@ export function MessageBubble({
           selected && styles.bubbleWrapSelected,
         ]}
       >
+        {thought && isAssistant && (
+          <View style={styles.thoughtContainer}>
+            <TouchableOpacity
+              onPress={() => setShowThought(!showThought)}
+              style={styles.thoughtHeader}
+            >
+              <Text style={styles.thoughtTitle}>
+                {showThought ? '▼ Reasoning' : '▶ Reasoning'}
+              </Text>
+            </TouchableOpacity>
+            {showThought && (
+              <View style={styles.thoughtBody}>
+                <Text style={styles.thoughtText}>{thought}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View
           style={[
             styles.bubble,
@@ -104,4 +125,32 @@ const styles = StyleSheet.create({
   assistantText: { color: '#fff' },
   systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic', textAlign: 'center' },
   cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
+  thoughtContainer: {
+    marginBottom: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  thoughtHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  thoughtTitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  thoughtBody: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  thoughtText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
 });

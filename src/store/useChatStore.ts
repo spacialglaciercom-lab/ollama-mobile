@@ -26,7 +26,8 @@ interface ChatStore {
   addMessage: (
     conversationId: string,
     role: 'user' | 'assistant' | 'system',
-    content: string
+    content: string,
+    thought?: string
   ) => Promise<StoredMessage>;
   updateConversationTitle: (id: string, title: string) => Promise<void>;
   searchConversations: (query: string) => Promise<Conversation[]>;
@@ -105,12 +106,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   deleteConversation: async (id) => {
-    await db.deleteConversation(id);
-    set((state) => ({
-      conversations: state.conversations.filter((c) => c.id !== id),
-      activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
-      messages: state.activeConversationId === id ? [] : state.messages,
-    }));
+    try {
+      await db.deleteConversation(id);
+      set((state) => ({
+        conversations: state.conversations.filter((c) => c.id !== id),
+        activeConversationId: state.activeConversationId === id ? null : state.activeConversationId,
+        messages: state.activeConversationId === id ? [] : state.messages,
+      }));
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
   },
 
   setActiveConversation: (id) => {
@@ -122,41 +127,49 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  addMessage: async (conversationId, role, content) => {
+  addMessage: async (conversationId, role, content, thought) => {
     const message: StoredMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
       conversationId,
       role,
       content,
+      thought,
       createdAt: Date.now(),
     };
 
-    await db.insertMessage(message);
+    try {
+      await db.insertMessage(message);
+      await db.updateConversationTimestamp(conversationId, Date.now());
 
-    // Update conversation timestamp
-    await db.updateConversationTimestamp(conversationId, Date.now());
+      if (get().activeConversationId === conversationId) {
+        set((state) => ({
+          messages: [...state.messages, message],
+        }));
+      }
 
-    set((state) => ({
-      messages: [...state.messages, message],
-      conversations: state.conversations.map((c) =>
-        c.id === conversationId ? { ...c, updatedAt: Date.now() } : c
-      ),
-    }));
-
-    return message;
+      return message;
+    } catch (err) {
+      console.error('Failed to add message:', err);
+      return message;
+    }
   },
 
   updateConversationTitle: async (id, title) => {
-    await db.updateConversationTitle(id, title);
-    set((state) => ({
-      conversations: state.conversations.map((c) => (c.id === id ? { ...c, title } : c)),
-    }));
+    try {
+      await db.updateConversationTitle(id, title);
+      set((state) => ({
+        conversations: state.conversations.map((c) => (c.id === id ? { ...c, title } : c)),
+      }));
+    } catch (err) {
+      console.error('Failed to update title:', err);
+    }
   },
 
   searchConversations: async (query) => {
-    const results = await db.searchConversations(query);
-    set({ conversations: results });
-    return results;
+    if (!query.trim()) {
+      return get().conversations;
+    }
+    return db.searchConversations(query);
   },
 
   setAutoSave: (enabled) => {
@@ -168,11 +181,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   cleanupOldConversations: async () => {
-    const { autoDeleteDays } = get();
-    if (autoDeleteDays === 0) return;
+    const days = get().autoDeleteDays;
+    if (days <= 0) return;
 
-    const cutoff = Date.now() - autoDeleteDays * 24 * 60 * 60 * 1000;
-    await db.deleteConversationsOlderThan(cutoff);
-    await get().loadConversations();
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    try {
+      await db.deleteConversationsOlderThan(cutoff);
+      await get().loadConversations();
+    } catch (err) {
+      console.error('Cleanup failed:', err);
+    }
   },
 }));

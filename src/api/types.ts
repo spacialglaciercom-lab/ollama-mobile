@@ -20,6 +20,7 @@ export interface OllamaListResponse {
 export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  thought?: string;
   images?: string[];
 }
 
@@ -91,6 +92,7 @@ export interface StoredMessage {
   conversationId: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  thought?: string;
   createdAt: number;
 }
 
@@ -227,6 +229,7 @@ export interface JulesSendMessageResponse {
   message?: {
     id: string;
     content: string;
+    thought?: string;
     role?: string;
     createTime?: string;
   };

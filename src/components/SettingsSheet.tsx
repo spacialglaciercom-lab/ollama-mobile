@@ -1,22 +1,26 @@
-import React, { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   Modal,
   FlatList,
-  StyleSheet,
   Switch,
   Alert,
+  ScrollView,
 } from 'react-native';
 
-import { getSources } from '../api/julesApiService';
 import { pingServer } from '../api/ollamaClient';
-import { ServerType } from '../api/types';
+import { getSources } from '../api/julesApiService';
 import { pingZeroClaw } from '../api/zeroclawClient';
 import { useChatStore } from '../store/useChatStore';
 import { useServerStore, Server, buildServerUrl } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
+import { ProviderConfig, ProviderType } from '../api/providerTypes';
+import { ServerType } from '../api/types';
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -26,6 +30,17 @@ interface SettingsSheetProps {
 export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
     useServerStore();
+  const {
+    providers,
+    activeProviderId,
+    addProvider,
+    updateProvider,
+    removeProvider,
+    setActiveProvider,
+    testProviderConnection,
+    saveApiKey,
+  } = useProviderStore();
+
   const {
     autoSaveEnabled,
     setAutoSave,
@@ -47,6 +62,14 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
   const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
+
+  // Provider Form State
+  const [showProviderForm, setShowProviderForm] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
+  const [providerName, setProviderName] = useState('');
+  const [providerType, setProviderType] = useState<ProviderType>('zeroclaw');
+  const [providerUrl, setProviderUrl] = useState('');
+  const [providerApiKey, setProviderApiKey] = useState('');
 
   const openAdd = () => {
     setEditingServer(null);
@@ -74,6 +97,24 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setShowForm(true);
   };
 
+  const openAddProvider = () => {
+    setEditingProvider(null);
+    setProviderName('');
+    setProviderType('zeroclaw');
+    setProviderUrl('http://localhost:8080');
+    setProviderApiKey('');
+    setShowProviderForm(true);
+  };
+
+  const openEditProvider = (provider: ProviderConfig) => {
+    setEditingProvider(provider);
+    setProviderName(provider.name);
+    setProviderType(provider.type);
+    setProviderUrl((provider as any).url || '');
+    setProviderApiKey(''); // Don't show existing key
+    setShowProviderForm(true);
+  };
+
   const handleSave = () => {
     if (!name.trim() || !host.trim()) return;
     const portNum = parseInt(port.trim(), 10) || (tls ? 443 : 80);
@@ -95,6 +136,26 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
       addServer(payload);
     }
     setShowForm(false);
+  };
+
+  const handleSaveProvider = async () => {
+    if (editingProvider) {
+      await updateProvider(editingProvider.id, {
+        name: providerName,
+        url: providerUrl,
+      } as any);
+      if (providerApiKey) {
+        await saveApiKey(editingProvider.id, providerApiKey);
+      }
+    } else {
+      await addProvider({
+        type: providerType,
+        name: providerName,
+        url: providerUrl,
+        apiKey: providerApiKey,
+      });
+    }
+    setShowProviderForm(false);
   };
 
   const handlePing = async (server: Server) => {
@@ -129,6 +190,45 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     if (server.id === 'ollama-cloud') return;
     removeServer(server.id);
   };
+
+  const renderProvider = (provider: ProviderConfig) => (
+    <TouchableOpacity
+      key={provider.id}
+      style={[
+        styles.serverRow,
+        provider.id === activeProviderId && styles.serverRowActive,
+      ]}
+      onPress={() => setActiveProvider(provider.id)}
+      onLongPress={() => openEditProvider(provider)}
+      activeOpacity={0.6}
+    >
+      <View style={styles.serverDotContainer}>
+        <View
+          style={[
+            styles.serverDot,
+            {
+              backgroundColor: provider.isConnected ? '#30d158' : '#8e8e93',
+            },
+          ]}
+        />
+      </View>
+      <View style={styles.serverInfo}>
+        <View style={styles.serverNameRow}>
+          <Text style={styles.serverName}>{provider.name}</Text>
+          <Text style={styles.typeBadge}>{provider.type}</Text>
+        </View>
+        <Text style={styles.serverUrl} numberOfLines={1}>
+          {(provider as any).url || 'Unified Provider'}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={styles.pingBtn}
+        onPress={() => testProviderConnection(provider.id)}
+      >
+        <Text style={styles.pingText}>Test</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
 
   const renderServer = ({ item }: { item: Server }) => (
     <TouchableOpacity
@@ -187,18 +287,28 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
             </TouchableOpacity>
           </View>
 
-          {!showForm ? (
-            <>
+          {!showForm && !showProviderForm ? (
+            <ScrollView>
+              {/* Providers Section */}
               <View style={styles.sectionLabelWrap}>
-                <Text style={styles.sectionLabel}>SERVERS</Text>
+                <Text style={styles.sectionLabel}>AI PROVIDERS (UNIFIED)</Text>
               </View>
 
-              <FlatList
-                data={servers}
-                keyExtractor={(item) => item.id}
-                renderItem={renderServer}
-                contentContainerStyle={styles.serverList}
-              />
+              <View style={styles.serverList}>
+                {providers.map(renderProvider)}
+              </View>
+
+              <TouchableOpacity style={styles.addBtn} onPress={openAddProvider}>
+                <Text style={styles.addBtnText}>+ Add Provider</Text>
+              </TouchableOpacity>
+
+              <View style={styles.sectionLabelWrap}>
+                <Text style={styles.sectionLabel}>LEGACY SERVERS</Text>
+              </View>
+
+              <View style={styles.serverList}>
+                {servers.map((s) => renderServer({ item: s }))}
+              </View>
 
               <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
                 <Text style={styles.addBtnText}>+ Add Server</Text>
@@ -258,7 +368,100 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               >
                 <Text style={styles.cleanupBtnText}>Run Cleanup Now</Text>
               </TouchableOpacity>
-            </>
+            </ScrollView>
+          ) : showProviderForm ? (
+            <View style={styles.form}>
+              <Text style={styles.formTitle}>{editingProvider ? 'Edit Provider' : 'Add Provider'}</Text>
+              <View style={styles.formSection}>
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>NAME</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={providerName}
+                    onChangeText={setProviderName}
+                    placeholder="My Provider"
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                  />
+                </View>
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>TYPE</Text>
+                  <View style={styles.typeToggle}>
+                    {(['zeroclaw', 'ollama-local', 'ollama-cloud', 'jules'] as ProviderType[]).map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.typeOption, providerType === t && styles.typeOptionActive]}
+                        onPress={() => setProviderType(t)}
+                      >
+                        <Text
+                          style={[
+                            styles.typeOptionText,
+                            providerType === t && styles.typeOptionTextActive,
+                            { fontSize: 10 }
+                          ]}
+                        >
+                          {t.replace('-', '\n')}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                {providerType !== 'jules' && (
+                  <>
+                    <View style={styles.formSep} />
+                    <View style={styles.formGroup}>
+                      <Text style={styles.fieldLabel}>URL</Text>
+                      <TextInput
+                        style={styles.fieldInput}
+                        value={providerUrl}
+                        onChangeText={setProviderUrl}
+                        placeholder="http://localhost:8080"
+                        placeholderTextColor="rgba(235,235,245,0.18)"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                  </>
+                )}
+                <View style={styles.formSep} />
+                <View style={styles.formGroup}>
+                  <Text style={styles.fieldLabel}>
+                    API KEY <Text style={styles.fieldLabelOpt}>optional</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={providerApiKey}
+                    onChangeText={setProviderApiKey}
+                    placeholder="••••••••"
+                    placeholderTextColor="rgba(235,235,245,0.18)"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.connectBtn} onPress={handleSaveProvider}>
+                <Text style={styles.connectBtnText}>{editingProvider ? 'Save' : 'Add Provider'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setShowProviderForm(false)}>
+                <Text style={styles.cancelLink}>Cancel</Text>
+              </TouchableOpacity>
+
+              {editingProvider && (
+                <TouchableOpacity
+                  onPress={() => {
+                    removeProvider(editingProvider.id);
+                    setShowProviderForm(false);
+                  }}
+                >
+                  <Text style={[styles.cancelLink, { color: '#ff453a', marginTop: 24 }]}>
+                    Delete Provider
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           ) : (
             <View style={styles.form}>
               <Text style={styles.formTitle}>{editingServer ? 'Edit Server' : 'Add Server'}</Text>

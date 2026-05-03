@@ -33,6 +33,7 @@ export async function initDB(db: SQLite.SQLiteDatabase): Promise<void> {
       conversation_id TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
       content TEXT NOT NULL,
+      thought TEXT,
       created_at INTEGER NOT NULL,
       FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
     );
@@ -51,6 +52,13 @@ export async function initDB(db: SQLite.SQLiteDatabase): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_repos_created ON repos(created_at DESC);
   `);
+
+  // Migration for 'thought' column
+  try {
+    await db.execAsync('ALTER TABLE messages ADD COLUMN thought TEXT;');
+  } catch (e) {
+    // Column might already exist
+  }
 }
 
 export async function getConversations(): Promise<Conversation[]> {
@@ -109,6 +117,7 @@ export async function getMessages(conversationId: string): Promise<StoredMessage
     conversationId: row.conversation_id,
     role: row.role,
     content: row.content,
+    thought: row.thought,
     createdAt: row.created_at,
   }));
 }
@@ -116,8 +125,15 @@ export async function getMessages(conversationId: string): Promise<StoredMessage
 export async function insertMessage(message: StoredMessage): Promise<void> {
   const db = await getDB();
   await db.runAsync(
-    'INSERT INTO messages (id, conversation_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)',
-    [message.id, message.conversationId, message.role, message.content, message.createdAt]
+    'INSERT INTO messages (id, conversation_id, role, content, thought, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [
+      message.id,
+      message.conversationId,
+      message.role,
+      message.content,
+      message.thought ?? null,
+      message.createdAt,
+    ]
   );
 }
 
@@ -203,6 +219,7 @@ export async function searchMessages(query: string): Promise<StoredMessage[]> {
     conversationId: row.conversation_id,
     role: row.role,
     content: row.content,
+    thought: row.thought,
     createdAt: row.created_at,
   }));
 }
