@@ -17,9 +17,9 @@ import {
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
-import { MessageBubble } from '../../src/components/chat/MessageBubble';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
+import { MessageBubble } from '../../src/components/chat/MessageBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -79,7 +79,16 @@ export default function ChatScreen() {
         }
       });
     }
-  }, [id, conversations, createConversation, loadMessages, paramModel, selectModel, selectedModel, setActiveConversation]);
+  }, [
+    id,
+    conversations,
+    createConversation,
+    loadMessages,
+    paramModel,
+    selectModel,
+    selectedModel,
+    setActiveConversation,
+  ]);
 
   useEffect(() => {
     setLocalMessages(messages);
@@ -112,7 +121,7 @@ export default function ChatScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // Build messages array for API
-    const apiMessages: Array<{ role: string; content: string }> = [];
+    const apiMessages: { role: string; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
@@ -136,7 +145,7 @@ export default function ChatScreen() {
           const assistantMsg = await addMessage(convId, 'assistant', finalContent);
           setLocalMessages((prev) => [...prev, assistantMsg]);
         }
-      },
+      }
     );
 
     // Auto-title from first user message
