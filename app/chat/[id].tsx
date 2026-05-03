@@ -20,6 +20,7 @@ import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
+import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -36,7 +37,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { selectedModel, selectModel, fetchModels } = useModelStore();
+  const { selectedModel, selectModel } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -48,27 +49,9 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
+  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
 
-  const renderItem = useCallback(
-    ({ item }: { item: StoredMessage }) => {
-      if (item.id === 'streaming') {
-        return <StreamingBubble content={item.content} />;
-      }
-      return (
-        <MessageBubble
-          role={item.role}
-          content={item.content}
-          selected={selectedMessage?.id === item.id}
-          onLongPress={() => setSelectedMessage(item)}
-        />
-      );
-    },
-    [selectedMessage?.id]
-  );
-
-  const keyExtractor = useCallback((item: StoredMessage) => item.id, []);
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
   const streamingContentRef = useRef('');
@@ -82,7 +65,7 @@ export default function ChatScreen() {
       const model = paramModel || selectedModel || 'gpt-oss:120b';
       createConversation('New Chat', model).then((conv) => {
         conversationRef.current = conv.id;
-        router.replace(`/chat/${conv.id}`);
+        router.replace('/chat/' + conv.id);
       });
     } else if (id) {
       conversationRef.current = id;
@@ -124,14 +107,8 @@ export default function ChatScreen() {
     if (!text || !conversationRef.current || !selectedModel || streaming) return;
 
     setInputText('');
-    setTokenStats(null);
 
     const convId = conversationRef.current;
-
-    // Add system prompt message if set
-    if (showSystemPrompt && systemPromptText.trim()) {
-      await addMessage(convId, 'system', systemPromptText.trim());
-    }
 
     // Add user message
     const userMsg = await addMessage(convId, 'user', text);
@@ -140,14 +117,14 @@ export default function ChatScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // Build messages array for API
-    const apiMessages: { role: string; content: string }[] = [];
+    const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
     localMessages
-      .filter((m) => m.role !== 'system')
-      .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: m.role, content: text });
+      .filter((msg) => msg.role !== 'system')
+      .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
+    apiMessages.push({ role: 'user', content: text });
 
     setStreamingContent('');
 
@@ -200,49 +177,32 @@ export default function ChatScreen() {
       : []),
   ];
 
-  const currentModel = selectedModel || paramModel || 'Select model';
-
   return (
     <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar style="light" />
 
-      {/* Nav Bar */}
+      {/* Header */}
       <View style={styles.navBar}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.navBtn}
-          accessibilityLabel="Go back"
-          accessibilityRole="button"
-        >
-          <Text style={styles.navBtnText}>‹ Back</Text>
+        <TouchableOpacity style={styles.navBtn} onPress={() => router.back()}>
+          <Text style={styles.navBtnText}>Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.modelPill}
-          onPress={() => setShowModelPicker(true)}
-          accessibilityLabel={`Current model: ${currentModel}. Tap to change.`}
-          accessibilityRole="button"
-        >
+        <TouchableOpacity style={styles.modelPill} onPress={() => setShowModelPicker(true)}>
           <Text style={styles.modelPillText} numberOfLines={1}>
-            {currentModel}
+            {selectedModel || 'Select Model'}
           </Text>
           <Text style={styles.modelPillCaret}>▼</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navBtn}
-          onPress={() => setShowMenu(!showMenu)}
-          accessibilityLabel="More options"
-          accessibilityRole="button"
-        >
-          <Text style={styles.navBtnIcon}>···</Text>
+        <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(true)}>
+          <Text style={styles.navBtnIcon}>⋯</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Menu Popover */}
+      {/* Popover Menu */}
       {showMenu && (
         <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
           <View style={styles.menuPopover}>
@@ -254,16 +214,6 @@ export default function ChatScreen() {
               }}
             >
               <Text style={styles.menuLabel}>Settings</Text>
-            </TouchableOpacity>
-            <View style={styles.menuSep} />
-            <TouchableOpacity
-              style={styles.menuRow}
-              onPress={() => {
-                setShowMenu(false);
-                if (activeServer) fetchModels();
-              }}
-            >
-              <Text style={styles.menuLabelAccent}>Refresh Models</Text>
             </TouchableOpacity>
             <View style={styles.menuSep} />
             <TouchableOpacity
@@ -297,15 +247,19 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={allMessages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            role={item.role}
-            content={item.content}
-            selected={selectedMessage?.id === item.id}
-            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
-            isStreaming={item.id === 'streaming' && streaming}
-          />
-        )}
+        renderItem={({ item }) => {
+          if (item.id === 'streaming') {
+            return <StreamingBubble content={item.content} />;
+          }
+          return (
+            <MessageBubble
+              role={item.role}
+              content={item.content}
+              selected={selectedMessage?.id === item.id}
+              onLongPress={() => setSelectedMessage(item)}
+            />
+          );
+        }}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
@@ -569,6 +523,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
   },

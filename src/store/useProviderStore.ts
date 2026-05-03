@@ -230,7 +230,7 @@ export const useProviderStore = create<ProviderStore>()(
         set((state) => ({
           providers: [
             ...state.providers.slice(0, existingIndex),
-            updatedProvider,
+            updatedProvider as ProviderConfig,
             ...state.providers.slice(existingIndex + 1),
           ],
         }));
@@ -518,15 +518,15 @@ export const useProviderStore = create<ProviderStore>()(
         setItem: (key, val) => storage.set(key, JSON.stringify(val)),
         removeItem: (key) => storage.delete(key),
       })),
-      partialize: (state) => ({
+      partialize: (state: ProviderStore) => ({
         // Only persist non-sensitive data
-        providers: state.providers.map((p) => ({
-          ...p,
-          apiKey: undefined, // Never persist API keys
-        })),
+        providers: state.providers.map((p) => {
+          const { apiKey: _, ...rest } = p as any;
+          return { ...rest, apiKey: '' };
+        }) as ProviderConfig[],
         activeProviderId: state.activeProviderId,
         connectionStatus: state.connectionStatus,
-      }),
+      } as any),
     }
   )
 );

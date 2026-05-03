@@ -10,11 +10,11 @@ import { JulesSource, JulesSessionCreateResponse } from '../types';
 global.fetch = jest.fn();
 
 // Helper to mock fetch responses
-const mockFetchResponse = (ok: boolean, status: number, jsonData: any = {}) => {
+const mockFetchResponse = (ok: boolean, status: number, jsonData: any = {}, statusText?: string) => {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
     ok,
     status,
-    statusText: status.toString(),
+    statusText: statusText || status.toString(),
     json: jest.fn().mockResolvedValueOnce(jsonData),
   });
 };
@@ -89,7 +89,7 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when fetch fails with status 401', async () => {
-      mockFetchResponse(false, 401);
+      mockFetchResponse(false, 401, {}, 'Unauthorized');
 
       await expect(getSources(TEST_API_KEY)).rejects.toThrow(
         'Failed to fetch sources: 401 Unauthorized'
@@ -97,7 +97,7 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when fetch fails with status 404', async () => {
-      mockFetchResponse(false, 404);
+      mockFetchResponse(false, 404, {}, 'Not Found');
 
       await expect(getSources(TEST_API_KEY)).rejects.toThrow(
         'Failed to fetch sources: 404 Not Found'
@@ -192,7 +192,7 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when session creation fails', async () => {
-      mockFetchResponse(false, 400, { error: { message: 'Invalid request' } });
+      mockFetchResponse(false, 400, { error: { message: 'Invalid request' } }, 'Bad Request');
 
       await expect(
         createSession(TEST_API_KEY, 'invalid-source', 'prompt')
@@ -239,7 +239,7 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when plan approval fails', async () => {
-      mockFetchResponse(false, 403, { error: { message: 'Not authorized' } });
+      mockFetchResponse(false, 403, { error: { message: 'Not authorized' } }, 'Forbidden');
 
       await expect(
         approvePlan(TEST_API_KEY, 'session-123')
@@ -247,7 +247,7 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when session does not exist', async () => {
-      mockFetchResponse(false, 404);
+      mockFetchResponse(false, 404, {}, 'Not Found');
 
       await expect(
         approvePlan(TEST_API_KEY, 'non-existent-session')
@@ -312,7 +312,7 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when sending message fails', async () => {
-      mockFetchResponse(false, 500, { error: { message: 'Internal server error' } });
+      mockFetchResponse(false, 500, { error: { message: 'Internal server error' } }, 'Internal Server Error');
 
       await expect(
         sendMessage(TEST_API_KEY, 'session-123', 'Hello')

@@ -18,8 +18,8 @@ import {
   JulesProviderInstance,
   ProviderFactoryConfig,
   JULES_SECURE_KEYS,
+  DEFAULT_JULES_PROVIDER,
 } from './julesTypes';
-import { JulesSource } from './types';
 
 /**
  * JulesProviderFactory

@@ -31,7 +31,7 @@ export async function getSources(apiKey: string): Promise<JulesSource[]> {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
+      throw new Error("Failed to fetch sources: " + response.status + " " + response.statusText);
     }
 
     const data = (await response.json()) as JulesSourcesResponse;
@@ -78,7 +78,7 @@ export async function createSession(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
+      throw new Error("Failed to create session: " + response.status + " " + response.statusText);
     }
 
     return (await response.json()) as JulesSessionCreateResponse;
@@ -103,7 +103,7 @@ export async function approvePlan(apiKey: string, sessionId: string): Promise<Ju
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to approve plan: ${response.status} ${response.statusText}`);
+      throw new Error("Failed to approve plan: " + response.status + " " + response.statusText);
     }
 
     return (await response.json()) as JulesApprovePlanResponse;
@@ -138,7 +138,7 @@ export async function sendMessage(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
+      throw new Error("Failed to send message: " + response.status + " " + response.statusText);
     }
 
     return (await response.json()) as JulesSendMessageResponse;
