@@ -164,7 +164,7 @@ describe('JulesDebugger Component', () => {
       });
       
       // Don't select a source
-      expect(screen.getByText('Create Session')).toBeDisabled();
+      expect(screen.getByText('Create Session').parent?.props.accessibilityState?.disabled).toBe(true);
     });
 
     it('should disable Create Session button when no prompt entered', async () => {
@@ -178,7 +178,7 @@ describe('JulesDebugger Component', () => {
       });
       
       // Don't enter a prompt
-      expect(screen.getByText('Create Session')).toBeDisabled();
+      expect(screen.getByText('Create Session').parent?.props.accessibilityState?.disabled).toBe(true);
     });
 
     it('should call createSession with correct parameters', async () => {
@@ -266,7 +266,7 @@ describe('JulesDebugger Component', () => {
       const branchInput = screen.getByPlaceholderText('main');
       fireEvent.changeText(branchInput, 'feature-branch');
       
-      expect(branchInput).toHaveTextContent('feature-branch');
+      expect(branchInput.props.value).toBe('feature-branch');
     });
 
     it('should update session title when changed', () => {
@@ -275,7 +275,7 @@ describe('JulesDebugger Component', () => {
       const titleInput = screen.getByPlaceholderText('My Jules Session');
       fireEvent.changeText(titleInput, 'Custom Title');
       
-      expect(titleInput).toHaveTextContent('Custom Title');
+      expect(titleInput.props.value).toBe('Custom Title');
     });
 
     it('should use custom branch when creating session', async () => {

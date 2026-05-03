@@ -227,13 +227,11 @@ export const useProviderStore = create<ProviderStore>()(
           updatedAt: Date.now(),
         };
 
-        set((state) => ({
-          providers: [
-            ...state.providers.slice(0, existingIndex),
-            updatedProvider,
-            ...state.providers.slice(existingIndex + 1),
-          ],
-        }));
+        set((state) => {
+          const newProviders = [...state.providers];
+          newProviders[existingIndex] = updatedProvider as ProviderConfig;
+          return { providers: newProviders };
+        });
       },
 
       removeProvider: async (id: string): Promise<void> => {

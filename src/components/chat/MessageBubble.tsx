@@ -17,44 +17,36 @@ export function MessageBubble({
   onLongPress,
   isStreaming,
 }: MessageBubbleProps) {
-  if (role === 'system') {
-    return (
-      <TouchableOpacity
-        onLongPress={onLongPress}
-        activeOpacity={0.8}
-        delayLongPress={300}
-        disabled={isSystem}
-      >
-        <View
-          style={[
-            styles.bubbleWrap,
-            isUser
-              ? styles.bubbleWrapUser
-              : isSystem
-                ? styles.bubbleWrapSystem
-                : styles.bubbleWrapAssistant,
-            selected && styles.bubbleWrapSelected,
-          ]}
-        >
-          <View
-            style={[
-              styles.bubble,
-              isUser ? styles.bubbleUser : isSystem ? styles.bubbleSystem : styles.bubbleAssistant,
-            ]}
-          >
-            <Text style={isSystem ? styles.bubbleSystemText : styles.bubbleText}>{content}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
   const isUser = role === 'user';
+  const isSystem = role === 'system';
+  const isAssistant = role === 'assistant';
 
   const handleLongPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onLongPress?.();
   };
+
+  if (isSystem) {
+    return (
+      <TouchableOpacity
+        onLongPress={handleLongPress}
+        activeOpacity={0.8}
+        delayLongPress={300}
+      >
+        <View
+          style={[
+            styles.bubbleWrap,
+            styles.bubbleWrapSystem,
+            selected && styles.bubbleWrapSelected,
+          ]}
+        >
+          <View style={[styles.bubble, styles.bubbleSystem]}>
+            <Text style={styles.bubbleSystemText}>{content}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -67,15 +59,20 @@ export function MessageBubble({
     >
       <View
         style={[
-          styles.container,
-          isUser ? styles.userContainer : styles.assistantContainer,
-          selected && styles.selectedContainer,
+          styles.bubbleWrap,
+          isUser ? styles.bubbleWrapUser : styles.bubbleWrapAssistant,
+          selected && styles.bubbleWrapSelected,
         ]}
       >
-        <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
-          {content}
-        </Text>
-        {isStreaming && role === 'assistant' && <Text style={styles.cursor}>▌</Text>}
+        <View
+          style={[
+            styles.bubble,
+            isUser ? styles.bubbleUser : styles.bubbleAssistant,
+          ]}
+        >
+          <Text style={styles.bubbleText}>{content}</Text>
+          {isStreaming && isAssistant && <Text style={styles.cursor}>▌</Text>}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -108,6 +105,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(48,209,88,0.2)',
   },
-  systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic' },
+  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  bubbleSystemText: {
+    color: 'rgba(48,209,88,0.7)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
   cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
 });

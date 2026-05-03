@@ -15,11 +15,12 @@ import {
   Alert,
 } from 'react-native';
 
+import { MessageBubble } from "../../src/components/chat/MessageBubble";
+import { StreamingBubble } from "../../src/components/chat/StreamingBubble";
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
-import { MessageBubble } from '../../src/components/chat/MessageBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -147,7 +148,7 @@ export default function ChatScreen() {
     localMessages
       .filter((m) => m.role !== 'system')
       .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: m.role, content: text });
+    apiMessages.push({ role: userMsg.role, content: text });
 
     setStreamingContent('');
 

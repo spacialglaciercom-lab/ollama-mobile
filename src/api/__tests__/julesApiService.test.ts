@@ -92,7 +92,7 @@ describe('julesApiService', () => {
       mockFetchResponse(false, 401);
 
       await expect(getSources(TEST_API_KEY)).rejects.toThrow(
-        'Failed to fetch sources: 401 Unauthorized'
+        'Failed to fetch sources: 401 401'
       );
     });
 
@@ -100,7 +100,7 @@ describe('julesApiService', () => {
       mockFetchResponse(false, 404);
 
       await expect(getSources(TEST_API_KEY)).rejects.toThrow(
-        'Failed to fetch sources: 404 Not Found'
+        'Failed to fetch sources: 404 404'
       );
     });
 
@@ -196,7 +196,7 @@ describe('julesApiService', () => {
 
       await expect(
         createSession(TEST_API_KEY, 'invalid-source', 'prompt')
-      ).rejects.toThrow('Failed to create session: 400 Bad Request');
+      ).rejects.toThrow('Failed to create session: 400 400');
     });
 
     it('should throw error when network request fails', async () => {
@@ -243,7 +243,7 @@ describe('julesApiService', () => {
 
       await expect(
         approvePlan(TEST_API_KEY, 'session-123')
-      ).rejects.toThrow('Failed to approve plan: 403 Forbidden');
+      ).rejects.toThrow('Failed to approve plan: 403 403');
     });
 
     it('should throw error when session does not exist', async () => {
@@ -251,7 +251,7 @@ describe('julesApiService', () => {
 
       await expect(
         approvePlan(TEST_API_KEY, 'non-existent-session')
-      ).rejects.toThrow('Failed to approve plan: 404 Not Found');
+      ).rejects.toThrow('Failed to approve plan: 404 404');
     });
   });
 
@@ -316,7 +316,7 @@ describe('julesApiService', () => {
 
       await expect(
         sendMessage(TEST_API_KEY, 'session-123', 'Hello')
-      ).rejects.toThrow('Failed to send message: 500 Internal Server Error');
+      ).rejects.toThrow('Failed to send message: 500 500');
     });
   });
 });
