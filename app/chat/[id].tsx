@@ -20,6 +20,7 @@ import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
+import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -297,15 +298,7 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={allMessages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            role={item.role}
-            content={item.content}
-            selected={selectedMessage?.id === item.id}
-            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
-            isStreaming={item.id === 'streaming' && streaming}
-          />
-        )}
+        renderItem={renderItem}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
