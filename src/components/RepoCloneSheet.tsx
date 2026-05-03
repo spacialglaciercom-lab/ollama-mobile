@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { useRepoStore } from '../store/useRepoStore';
+
 import { cloneRepo, CloneProgress } from '../api/gitClient';
+import { useRepoStore } from '../store/useRepoStore';
 
 interface RepoCloneSheetProps {
   visible: boolean;
@@ -41,13 +42,7 @@ export function RepoCloneSheet({ visible, onClose, onCloned }: RepoCloneSheetPro
     const authPat = patInput.trim() || pat || undefined;
 
     try {
-      await cloneRepo(
-        trimmed,
-        repoId,
-        branch.trim() || 'main',
-        authPat,
-        (p) => setProgress(p),
-      );
+      await cloneRepo(trimmed, repoId, branch.trim() || 'main', authPat, (p) => setProgress(p));
 
       await addRepo({
         id: repoId,
@@ -72,9 +67,7 @@ export function RepoCloneSheet({ visible, onClose, onCloned }: RepoCloneSheetPro
   };
 
   const progressPercent =
-    progress && progress.total > 0
-      ? Math.round((progress.loaded / progress.total) * 100)
-      : 0;
+    progress && progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -160,9 +153,7 @@ export function RepoCloneSheet({ visible, onClose, onCloned }: RepoCloneSheetPro
               onPress={handleClone}
               disabled={cloning || !url.trim()}
             >
-              <Text style={styles.cloneBtnText}>
-                {cloning ? 'Cloning...' : 'Clone'}
-              </Text>
+              <Text style={styles.cloneBtnText}>{cloning ? 'Cloning...' : 'Clone'}</Text>
             </TouchableOpacity>
           </View>
         </View>

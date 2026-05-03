@@ -9,8 +9,9 @@ import {
   FlatList,
   StyleSheet,
 } from 'react-native';
-import { useRepoStore } from '../store/useRepoStore';
+
 import { commitChanges, pushRepo, pullRepo, GitStatusResult } from '../api/gitClient';
+import { useRepoStore } from '../store/useRepoStore';
 
 interface CommitSheetProps {
   visible: boolean;
@@ -21,7 +22,14 @@ interface CommitSheetProps {
   onDone: () => void;
 }
 
-export function CommitSheet({ visible, onClose, repoId, branch, status, onDone }: CommitSheetProps) {
+export function CommitSheet({
+  visible,
+  onClose,
+  repoId,
+  branch,
+  status,
+  onDone,
+}: CommitSheetProps) {
   const { pat, authorName, authorEmail, markSynced } = useRepoStore();
   const [message, setMessage] = useState('');
   const [working, setWorking] = useState(false);
@@ -84,7 +92,9 @@ export function CommitSheet({ visible, onClose, repoId, branch, status, onDone }
   const renderChangedFile = ({ item }: { item: string }) => (
     <View style={styles.changedRow}>
       <Text style={styles.changedIcon}>M</Text>
-      <Text style={styles.changedPath} numberOfLines={1}>{item}</Text>
+      <Text style={styles.changedPath} numberOfLines={1}>
+        {item}
+      </Text>
     </View>
   );
 
@@ -135,7 +145,11 @@ export function CommitSheet({ visible, onClose, repoId, branch, status, onDone }
                 editable={!working}
               />
               <TouchableOpacity
-                style={[styles.actionBtn, styles.commitBtn, (!message.trim() || working) && styles.actionBtnDisabled]}
+                style={[
+                  styles.actionBtn,
+                  styles.commitBtn,
+                  (!message.trim() || working) && styles.actionBtnDisabled,
+                ]}
                 onPress={handleCommit}
                 disabled={!message.trim() || working}
               >

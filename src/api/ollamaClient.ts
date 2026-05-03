@@ -1,10 +1,4 @@
-import {
-  OllamaListResponse,
-  ChatRequest,
-  ChatResponse,
-  PullRequest,
-  PullResponse,
-} from './types';
+import { OllamaListResponse, ChatRequest, ChatResponse, PullRequest, PullResponse } from './types';
 
 // Create headers for Ollama API requests
 function makeHeaders(apiKey?: string): Record<string, string> {
@@ -180,7 +174,11 @@ export async function* streamPull(
   }
 }
 
-export async function deleteModel(baseUrl: string, apiKey: string | undefined, modelName: string): Promise<void> {
+export async function deleteModel(
+  baseUrl: string,
+  apiKey: string | undefined,
+  modelName: string
+): Promise<void> {
   const url = `${cleanUrl(baseUrl)}/api/delete`;
 
   const response = await fetch(url, {
@@ -194,7 +192,11 @@ export async function deleteModel(baseUrl: string, apiKey: string | undefined, m
   }
 }
 
-export async function getModelInfo(baseUrl: string, apiKey: string | undefined, modelName: string): Promise<any> {
+export async function getModelInfo(
+  baseUrl: string,
+  apiKey: string | undefined,
+  modelName: string
+): Promise<any> {
   const url = `${cleanUrl(baseUrl)}/api/show`;
 
   const response = await fetch(url, {
@@ -210,7 +212,10 @@ export async function getModelInfo(baseUrl: string, apiKey: string | undefined, 
   return response.json();
 }
 
-export async function checkServerStatus(baseUrl: string, apiKey?: string): Promise<{ status: boolean; models?: string[] }> {
+export async function checkServerStatus(
+  baseUrl: string,
+  apiKey?: string
+): Promise<{ status: boolean; models?: string[] }> {
   try {
     const url = `${cleanUrl(baseUrl)}/api/tags`;
 

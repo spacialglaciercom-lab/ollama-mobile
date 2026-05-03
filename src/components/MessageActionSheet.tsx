@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  Clipboard,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Clipboard, Alert } from 'react-native';
 
 interface MessageActionSheetProps {
   visible: boolean;
@@ -58,10 +50,7 @@ export function MessageActionSheet({
             </>
           )}
 
-          <TouchableOpacity
-            style={styles.actionRow}
-            onPress={onClose}
-          >
+          <TouchableOpacity style={styles.actionRow} onPress={onClose}>
             <Text style={styles.actionLabelDanger}>Cancel</Text>
           </TouchableOpacity>
         </View>
