@@ -1,6 +1,6 @@
 import { Message, ChatResponse } from './types';
 
-export async function pingZeroClaw(baseUrl: string, _apiKey?: string): Promise<boolean> {
+export async function pingZeroClaw(baseUrl: string, apiKey?: string): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       const wsUrl = baseUrl.replace(/\/+$/, '').replace(/^http/, 'ws') + '/acp';
@@ -18,7 +18,7 @@ export async function pingZeroClaw(baseUrl: string, _apiKey?: string): Promise<b
             jsonrpc: '2.0',
             id: 'ping',
             method: 'initialize',
-            params: {},
+            params: apiKey ? { apiKey } : {},
           })
         );
       };
@@ -48,7 +48,7 @@ export async function pingZeroClaw(baseUrl: string, _apiKey?: string): Promise<b
 
 export async function* streamZeroClawChat(
   baseUrl: string,
-  _apiKey: string | undefined,
+  apiKey: string | undefined,
   messages: Message[]
 ): AsyncGenerator<ChatResponse, void, unknown> {
   const wsUrl = baseUrl.replace(/\/+$/, '').replace(/^http/, 'ws') + '/acp';
@@ -92,7 +92,7 @@ export async function* streamZeroClawChat(
         jsonrpc: '2.0',
         id: 1,
         method: 'initialize',
-        params: {},
+        params: apiKey ? { apiKey } : {},
       })
     );
   };
@@ -130,6 +130,12 @@ export async function* streamZeroClawChat(
           push({
             model: 'zeroclaw',
             message: { role: 'assistant', content: update.content.text },
+            done: false,
+          });
+        } else if (update.sessionUpdate === 'agent_thought_chunk') {
+          push({
+            model: 'zeroclaw',
+            message: { role: 'assistant', content: '', thought: update.content.text },
             done: false,
           });
         }

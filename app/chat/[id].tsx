@@ -41,6 +41,7 @@ export default function ChatScreen() {
   const { sendMessage, streaming } = useOllamaStream();
 
   const [streamingContent, setStreamingContent] = useState('');
+  const [streamingThought, setStreamingThought] = useState('');
   const [localMessages, setLocalMessages] = useState<StoredMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -78,6 +79,7 @@ export default function ChatScreen() {
     const userText = inputText.trim();
     setInputText('');
     setStreamingContent('');
+    setStreamingThought('');
     setTokenStats(null);
 
     let currentId = id === 'new' ? '' : id;
@@ -111,29 +113,36 @@ export default function ChatScreen() {
     await sendMessage(
       selectedModel || 'llama3',
       history,
-      (content) => {
+      (content, thought) => {
         setStreamingContent(content);
+        if (thought) setStreamingThought(thought);
         flatListRef.current?.scrollToEnd();
       },
       async () => {
         // Done streaming, save assistant message
-        if (streamingContent) {
-          await addMessage(currentId, 'assistant', streamingContent);
+        if (streamingContent || streamingThought) {
+          // Note: we need to pass the final thought to addMessage
+          // But useChatStore.addMessage currently only takes content.
+          // Let's update useChatStore too.
+          // Actually, I'll update it in a separate step or now if I can.
+          await (useChatStore.getState() as any).addMessage(currentId, 'assistant', streamingContent, streamingThought);
           setStreamingContent('');
+          setStreamingThought('');
         }
       }
     );
   };
 
   const allMessages = [...localMessages];
-  if (streamingContent) {
+  if (streamingContent || streamingThought) {
     allMessages.push({
       id: 'streaming',
       conversationId: 'current',
       role: 'assistant',
       content: streamingContent,
+      thought: streamingThought,
       createdAt: Date.now(),
-    });
+    } as StoredMessage);
   }
 
   return (
@@ -162,7 +171,7 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Menu Popover */}
+      {/* Popover Menu */}
       {showMenu && (
         <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
           <View style={styles.menuPopover}>
@@ -211,6 +220,7 @@ export default function ChatScreen() {
           <MessageBubble
             role={item.role}
             content={item.content}
+            thought={item.thought}
             selected={selectedMessage?.id === item.id}
             onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
             isStreaming={item.id === 'streaming' && streaming}

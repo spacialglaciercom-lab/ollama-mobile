@@ -4,6 +4,7 @@ import { View, FlatList, Text, TouchableOpacity, Modal, StyleSheet } from 'react
 import { ModelPullSheet } from './ModelPullSheet';
 import { useModelStore } from '../store/useModelStore';
 import { useServerStore } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
 
 interface ModelPickerSheetProps {
   visible: boolean;
@@ -13,6 +14,7 @@ interface ModelPickerSheetProps {
 export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
   const { models, selectedModel, selectModel, fetchModels, loading } = useModelStore();
   const server = useServerStore((state) => state.getActiveServer());
+  const activeProvider = useProviderStore((state) => state.getActiveProvider());
   const [showPull, setShowPull] = useState(false);
 
   const handleSelect = (name: string) => {
@@ -26,6 +28,8 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
     if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)}MB`;
     return '';
   };
+
+  const isZeroClaw = activeProvider?.type === 'zeroclaw' || server?.type === 'zeroclaw';
 
   return (
     <>
@@ -72,7 +76,7 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
               }
             />
 
-            {server?.type !== 'zeroclaw' && (
+            {!isZeroClaw && (
               <TouchableOpacity style={styles.pullBtn} onPress={() => setShowPull(true)}>
                 <Text style={styles.pullBtnText}>Pull new model</Text>
               </TouchableOpacity>
@@ -104,10 +108,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c1c1e',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '55%',
+    maxHeight: '60%',
   },
-  handle: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
-  handleBar: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#3a3a3c' },
+  handle: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#3a3a3c',
+  },
   sheetNav: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -123,27 +136,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 13,
-    gap: 14,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(84,84,88,0.65)',
+    borderBottomColor: 'rgba(84,84,88,0.3)',
   },
-  modelDot: { width: 20, alignItems: 'center', justifyContent: 'center' },
-  modelDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#30d158' },
-  modelName: { flex: 1, fontSize: 17, color: 'rgba(235,235,245,0.8)' },
-  modelNameActive: { color: '#fff', fontWeight: '500' },
-  modelSize: { fontSize: 15, color: 'rgba(235,235,245,0.3)' },
-  emptyState: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { color: 'rgba(235,235,245,0.3)', fontSize: 17 },
-  pullBtn: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    backgroundColor: 'rgba(48,209,88,0.12)',
-    borderRadius: 12,
-    paddingVertical: 12,
+  modelDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#3a3a3c',
+    marginRight: 12,
     alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(48,209,88,0.3)',
+    justifyContent: 'center',
   },
-  pullBtnText: { color: '#30d158', fontSize: 15, fontWeight: '600' },
+  modelDotInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#30d158',
+  },
+  modelName: { color: 'rgba(255,255,255,0.7)', fontSize: 17, flex: 1 },
+  modelNameActive: { color: '#fff', fontWeight: '600' },
+  modelSize: { color: 'rgba(235,235,245,0.3)', fontSize: 13 },
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { color: 'rgba(235,235,245,0.3)', fontSize: 15 },
+  pullBtn: {
+    margin: 20,
+    backgroundColor: '#30d158',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  pullBtnText: { color: '#000', fontSize: 17, fontWeight: '600' },
 });
