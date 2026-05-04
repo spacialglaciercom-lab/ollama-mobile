@@ -1,9 +1,4 @@
-import {
-  getSources,
-  createSession,
-  approvePlan,
-  sendMessage,
-} from '../julesApiService';
+import { getSources, createSession, approvePlan, sendMessage } from '../julesApiService';
 import { JulesSource, JulesSessionCreateResponse } from '../types';
 
 // Mock the global fetch function
@@ -67,16 +62,13 @@ describe('julesApiService', () => {
       const result = await getSources(TEST_API_KEY);
 
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch).toHaveBeenCalledWith(
-        'https://jules.googleapis.com/v1alpha/sources',
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': TEST_API_KEY,
-          },
-        }
-      );
+      expect(fetch).toHaveBeenCalledWith('https://jules.googleapis.com/v1alpha/sources', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': TEST_API_KEY,
+        },
+      });
       expect(result).toEqual(mockSources);
     });
 
@@ -148,26 +140,23 @@ describe('julesApiService', () => {
       );
 
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch).toHaveBeenCalledWith(
-        'https://jules.googleapis.com/v1alpha/sessions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': TEST_API_KEY,
-          },
-          body: JSON.stringify({
-            prompt: 'Fix the bug',
-            sourceContext: {
-              source: 'projects/my-project/repositories/my-repo',
-              githubRepoContext: {
-                startingBranch: 'main',
-              },
+      expect(fetch).toHaveBeenCalledWith('https://jules.googleapis.com/v1alpha/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': TEST_API_KEY,
+        },
+        body: JSON.stringify({
+          prompt: 'Fix the bug',
+          sourceContext: {
+            source: 'projects/my-project/repositories/my-repo',
+            githubRepoContext: {
+              startingBranch: 'main',
             },
-            title: 'Session for projects/my-project/repositories/my-repo',
-          }),
-        }
-      );
+          },
+          title: 'Session for projects/my-project/repositories/my-repo',
+        }),
+      });
       expect(result).toEqual(mockSessionResponse);
     });
 
@@ -202,18 +191,18 @@ describe('julesApiService', () => {
     it('should throw error when session creation fails', async () => {
       mockFetchResponse(false, 400, { error: { message: 'Invalid request' } });
 
-      await expect(
-        createSession(TEST_API_KEY, 'invalid-source', 'prompt')
-      ).rejects.toThrow('Failed to create session: 400 Bad Request');
+      await expect(createSession(TEST_API_KEY, 'invalid-source', 'prompt')).rejects.toThrow(
+        'Failed to create session: 400 Bad Request'
+      );
     });
 
     it('should throw error when network request fails', async () => {
       const networkError = new Error('Connection refused');
       mockFetchError(networkError);
 
-      await expect(
-        createSession(TEST_API_KEY, 'source', 'prompt')
-      ).rejects.toThrow('Connection refused');
+      await expect(createSession(TEST_API_KEY, 'source', 'prompt')).rejects.toThrow(
+        'Connection refused'
+      );
     });
   });
 
@@ -249,17 +238,17 @@ describe('julesApiService', () => {
     it('should throw error when plan approval fails', async () => {
       mockFetchResponse(false, 403, { error: { message: 'Not authorized' } });
 
-      await expect(
-        approvePlan(TEST_API_KEY, 'session-123')
-      ).rejects.toThrow('Failed to approve plan: 403 Forbidden');
+      await expect(approvePlan(TEST_API_KEY, 'session-123')).rejects.toThrow(
+        'Failed to approve plan: 403 Forbidden'
+      );
     });
 
     it('should throw error when session does not exist', async () => {
       mockFetchResponse(false, 404);
 
-      await expect(
-        approvePlan(TEST_API_KEY, 'non-existent-session')
-      ).rejects.toThrow('Failed to approve plan: 404 Not Found');
+      await expect(approvePlan(TEST_API_KEY, 'non-existent-session')).rejects.toThrow(
+        'Failed to approve plan: 404 Not Found'
+      );
     });
   });
 
@@ -281,11 +270,7 @@ describe('julesApiService', () => {
     it('should send message to a session', async () => {
       mockFetchResponse(true, 200, mockMessageResponse);
 
-      const result = await sendMessage(
-        TEST_API_KEY,
-        'session-123',
-        'Can you explain this code?'
-      );
+      const result = await sendMessage(TEST_API_KEY, 'session-123', 'Can you explain this code?');
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
@@ -322,9 +307,9 @@ describe('julesApiService', () => {
     it('should throw error when sending message fails', async () => {
       mockFetchResponse(false, 500, { error: { message: 'Internal server error' } });
 
-      await expect(
-        sendMessage(TEST_API_KEY, 'session-123', 'Hello')
-      ).rejects.toThrow('Failed to send message: 500 Internal Server Error');
+      await expect(sendMessage(TEST_API_KEY, 'session-123', 'Hello')).rejects.toThrow(
+        'Failed to send message: 500 Internal Server Error'
+      );
     });
   });
 });

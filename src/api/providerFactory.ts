@@ -1,12 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 
+import { getSources, createSession as julesCreateSession } from './julesApiService';
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
-  streamChat as ollamaStreamChat
+  streamChat as ollamaStreamChat,
 } from './ollamaClient';
-import { getSources, createSession as julesCreateSession } from './julesApiService';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   AnyProviderInstance,
   ProviderConfig,
@@ -25,6 +24,7 @@ import {
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
+import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory
@@ -190,9 +190,7 @@ export class ProviderFactory {
     };
   }
 
-  private static createZeroClawProvider(
-    config: ZeroClawProviderConfig
-  ): ZeroClawProviderInstance {
+  private static createZeroClawProvider(config: ZeroClawProviderConfig): ZeroClawProviderInstance {
     return {
       config,
       testConnection: async () => {
@@ -214,9 +212,7 @@ export class ProviderFactory {
     };
   }
 
-  private static createJulesProvider(
-    config: JulesProviderConfig
-  ): JulesProviderInstance {
+  private static createJulesProvider(config: JulesProviderConfig): JulesProviderInstance {
     return {
       config,
       testConnection: async () => {
@@ -268,18 +264,12 @@ export class ProviderFactory {
     await SecureStore.setItemAsync(key, apiKey);
   }
 
-  static async getApiKey(
-    type: ProviderConfig['type'],
-    providerId: string
-  ): Promise<string | null> {
+  static async getApiKey(type: ProviderConfig['type'], providerId: string): Promise<string | null> {
     const key = PROVIDER_SECURE_KEYS.API_KEY_PREFIX(type, providerId);
     return SecureStore.getItemAsync(key);
   }
 
-  static async removeApiKey(
-    type: ProviderConfig['type'],
-    providerId: string
-  ): Promise<void> {
+  static async removeApiKey(type: ProviderConfig['type'], providerId: string): Promise<void> {
     const key = PROVIDER_SECURE_KEYS.API_KEY_PREFIX(type, providerId);
     await SecureStore.deleteItemAsync(key);
   }

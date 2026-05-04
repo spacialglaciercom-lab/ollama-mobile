@@ -73,9 +73,9 @@ export interface JulesProviderConfig extends BaseProviderConfig {
 /**
  * Union type for all provider configurations
  */
-export type ProviderConfig = 
-  | OllamaCloudProviderConfig 
-  | OllamaLocalProviderConfig 
+export type ProviderConfig =
+  | OllamaCloudProviderConfig
+  | OllamaLocalProviderConfig
   | ZeroClawProviderConfig
   | JulesProviderConfig;
 
@@ -162,9 +162,9 @@ export interface JulesProviderInstance extends BaseProviderInstance<JulesProvide
 /**
  * Union type for all provider instances
  */
-export type AnyProviderInstance = 
-  | OllamaCloudProviderInstance 
-  | OllamaLocalProviderInstance 
+export type AnyProviderInstance =
+  | OllamaCloudProviderInstance
+  | OllamaLocalProviderInstance
   | ZeroClawProviderInstance
   | JulesProviderInstance;
 
@@ -196,7 +196,10 @@ export const PROVIDER_SECURE_KEYS = {
 /**
  * Default Ollama Cloud configuration
  */
-export const DEFAULT_OLLAMA_CLOUD_PROVIDER: Omit<OllamaCloudProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_OLLAMA_CLOUD_PROVIDER: Omit<
+  OllamaCloudProviderConfig,
+  'id' | 'createdAt' | 'updatedAt'
+> = {
   name: 'Ollama Cloud',
   type: 'ollama-cloud',
   url: 'https://ollama.com',
@@ -207,7 +210,10 @@ export const DEFAULT_OLLAMA_CLOUD_PROVIDER: Omit<OllamaCloudProviderConfig, 'id'
 /**
  * Default Local Ollama configuration
  */
-export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<OllamaLocalProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<
+  OllamaLocalProviderConfig,
+  'id' | 'createdAt' | 'updatedAt'
+> = {
   name: 'Local Ollama',
   type: 'ollama-local',
   url: 'http://localhost:11434',
@@ -218,7 +224,10 @@ export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<OllamaLocalProviderConfig, 'id'
 /**
  * Default ZeroClaw configuration
  */
-export const DEFAULT_ZEROCLAW_PROVIDER: Omit<ZeroClawProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_ZEROCLAW_PROVIDER: Omit<
+  ZeroClawProviderConfig,
+  'id' | 'createdAt' | 'updatedAt'
+> = {
   name: 'ZeroClaw',
   type: 'zeroclaw',
   url: 'http://localhost:8080',
@@ -271,21 +280,27 @@ export function isJulesProvider(config: ProviderConfig): config is JulesProvider
 /**
  * Check if a provider instance is Ollama Cloud
  */
-export function isOllamaCloudInstance(instance: AnyProviderInstance): instance is OllamaCloudProviderInstance {
+export function isOllamaCloudInstance(
+  instance: AnyProviderInstance
+): instance is OllamaCloudProviderInstance {
   return instance.config.type === 'ollama-cloud';
 }
 
 /**
  * Check if a provider instance is Local Ollama
  */
-export function isOllamaLocalInstance(instance: AnyProviderInstance): instance is OllamaLocalProviderInstance {
+export function isOllamaLocalInstance(
+  instance: AnyProviderInstance
+): instance is OllamaLocalProviderInstance {
   return instance.config.type === 'ollama-local';
 }
 
 /**
  * Check if a provider instance is ZeroClaw
  */
-export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+export function isZeroClawInstance(
+  instance: AnyProviderInstance
+): instance is ZeroClawProviderInstance {
   return instance.config.type === 'zeroclaw';
 }
 

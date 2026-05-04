@@ -1,12 +1,13 @@
 /**
  * Jules Provider Factory
  * Centralized provider instantiation for Jules AI
- * 
+ *
  * NOTE: This file is kept for backward compatibility.
  * New code should use the unified ProviderFactory from providerFactory.ts
  */
 
 import * as SecureStore from 'expo-secure-store';
+
 import {
   getSources,
   createSession as apiCreateSession,
@@ -40,11 +41,11 @@ export class JulesProviderFactory {
           const apiKey = await SecureStore.getItemAsync(
             `${JULES_SECURE_KEYS.API_KEY_PREFIX}${config.id}`
           );
-          
+
           if (!apiKey) {
             return false;
           }
-          
+
           // Make a lightweight request to test connectivity
           const sources = await getSources(apiKey);
           return Array.isArray(sources);
@@ -53,19 +54,19 @@ export class JulesProviderFactory {
           return false;
         }
       },
-      
+
       getSources: async () => {
         const apiKey = await SecureStore.getItemAsync(
           `${JULES_SECURE_KEYS.API_KEY_PREFIX}${config.id}`
         );
-        
+
         if (!apiKey) {
           throw new Error('API key not found for provider');
         }
-        
+
         return getSources(apiKey);
       },
-      
+
       createSession: async (
         sourceString: string,
         prompt: string,
@@ -75,11 +76,11 @@ export class JulesProviderFactory {
         const apiKey = await SecureStore.getItemAsync(
           `${JULES_SECURE_KEYS.API_KEY_PREFIX}${config.id}`
         );
-        
+
         if (!apiKey) {
           throw new Error('API key not found for provider');
         }
-        
+
         const response = await apiCreateSession(
           apiKey,
           sourceString,
@@ -87,7 +88,7 @@ export class JulesProviderFactory {
           startingBranch,
           title
         );
-        
+
         return {
           session: {
             id: response.session?.id || '',
@@ -119,28 +120,21 @@ export class JulesProviderFactory {
    * Save API key securely for a provider
    */
   static async saveApiKey(providerId: string, apiKey: string): Promise<void> {
-    await SecureStore.setItemAsync(
-      `${JULES_SECURE_KEYS.API_KEY_PREFIX}${providerId}`,
-      apiKey
-    );
+    await SecureStore.setItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${providerId}`, apiKey);
   }
 
   /**
    * Get API key securely for a provider
    */
   static async getApiKey(providerId: string): Promise<string | null> {
-    return SecureStore.getItemAsync(
-      `${JULES_SECURE_KEYS.API_KEY_PREFIX}${providerId}`
-    );
+    return SecureStore.getItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${providerId}`);
   }
 
   /**
    * Remove API key for a provider
    */
   static async removeApiKey(providerId: string): Promise<void> {
-    await SecureStore.deleteItemAsync(
-      `${JULES_SECURE_KEYS.API_KEY_PREFIX}${providerId}`
-    );
+    await SecureStore.deleteItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${providerId}`);
   }
 
   /**
@@ -169,7 +163,8 @@ export class JulesProviderFactory {
         title?: string
       ) => apiCreateSession(apiKey, sourceString, prompt, startingBranch, title),
       approvePlan: (sessionId: string) => apiApprovePlan(apiKey, sessionId),
-      sendMessage: (sessionId: string, message: string) => apiSendMessage(apiKey, sessionId, message),
+      sendMessage: (sessionId: string, message: string) =>
+        apiSendMessage(apiKey, sessionId, message),
     };
   }
 }
