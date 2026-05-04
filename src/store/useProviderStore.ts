@@ -163,11 +163,12 @@ export const useProviderStore = create<ProviderStore>()(
 
       testAllConnections: async (): Promise<Record<string, boolean>> => {
         const { providers } = get();
-        const results: Record<string, boolean> = {};
-        for (const provider of providers) {
-          results[provider.id] = await get().testProviderConnection(provider.id);
-        }
-        return results;
+        const testPromises = providers.map(async (provider) => {
+          const isConnected = await get().testProviderConnection(provider.id);
+          return [provider.id, isConnected] as [string, boolean];
+        });
+        const resultsArray = await Promise.all(testPromises);
+        return Object.fromEntries(resultsArray);
       },
 
       validateConnection: async (type, url, apiKey) => testConnectionWithKey(type, url, apiKey),
