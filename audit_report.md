@@ -1,43 +1,69 @@
-# Architectural Audit Report
+# Detailed Code Audit Report - Ollama Mobile
 
-## 1. Executive Summary
+## 1. Security Analysis
 
-This report documents the findings of a comprehensive architectural audit requested for a repository containing "core routing algorithms," "geographic data pipelines," and "cross-language boundaries (Rust and TypeScript)."
+### 1.1 Insecure API Key Storage (Critical)
+The legacy `useServerStore.ts` stores API keys in plain text within MMKV storage. MMKV files are not encrypted by default on disk, making these keys vulnerable on rooted/jailbroken devices or via backup exploits.
+- **Affected File:** `src/store/useServerStore.ts`
+- **Recommendation:** Migrate all server configurations to `useProviderStore.ts`, which correctly utilizes `expo-secure-store` for sensitive data and uses the `partialize` middleware to exclude keys from MMKV persistence.
 
-Upon reviewing the codebase, it was determined that the repository is **not a geographic routing system or a Rust-based project**. Instead, it is **ollama-mobile**, a React Native/Expo mobile client written entirely in TypeScript (and JavaScript) intended to interface with the Ollama API.
+### 1.2 Secret Redaction (Good)
+The `useDiagnosticsStore.ts` implements a robust redaction system for logs. This is a positive security pattern that prevents accidental exposure of credentials in diagnostics exports.
 
-The requested structures—such as routing algorithms, geographic pipelines, Rust FFI interfaces, and Lean 4 formal verification setups—do not exist within the current architecture.
+---
 
-## 2. Execution Flow of Core Algorithms
+## 2. Architectural Analysis
 
-### Requested: Mapping Routing Algorithms and Geographic Data Pipelines
-**Finding:** There are no routing algorithms or geographic data pipelines in the repository.
+### 2.1 Store Redundancy
+There is a significant overlap between `useServerStore.ts` and `useProviderStore.ts`.
+- `useServerStore` is the older implementation and is currently used in the primary `SettingsSheet.tsx`.
+- `useProviderStore` is the newer, unified implementation that supports Ollama, ZeroClaw, and Jules, but it is currently underutilized.
+- **Recommendation:** Consolidate into `useProviderStore`. Remove `useServerStore` once migration is complete.
 
-**Actual Flow (Ollama Client):**
-The codebase primarily facilitates chatting with Ollama language models. The execution flow follows standard React Native application patterns:
-1. **User Interface (React Native/Expo Router):** App entry via Expo. Navigation uses sheets and native mobile routing paradigms (not to be confused with geographic routing).
-2. **State Management (Zustand):** Zustand manages local UI states and caches models, conversations, and connected servers (`src/store`).
-3. **Data Persistence (Expo SQLite/MMKV):** Chat logs are saved to a local SQLite database (`src/db/schema.ts`).
-4. **Networking (Fetch/ollama-js):** API requests interface with either local or cloud Ollama instances (`src/api/ollamaClient.ts`, `src/api/streaming.ts`). The system uses Server-Sent Events (SSE) to handle streaming text responses token-by-token.
+### 2.2 API Client Robustness
+- **Timeouts:** Many API calls (e.g., in `ollamaClient.ts` and `julesApiService.ts`) lack explicit timeouts. This can lead to the app hanging on poor network connections.
+- **WebSocket Stability:** The `zeroclawClient.ts` does not implement a heartbeat mechanism or explicit connection timeouts beyond the initial handshake.
+- **Recommendation:** Implement `AbortController` for all fetch requests and add heartbeat/timeout logic to WebSocket clients.
 
-**Scan for Infinite Loops and Dead Code:**
-The application relies strictly on standard UI event loops (React) and asynchronous I/O (fetch API for SSE and REST calls). Standard static analysis (TypeScript compilation and ESLint) controls for obvious logic errors, and no infinite geographic routing loops or dead pipeline nodes exist.
+### 2.3 Database Schema
+The `src/db/schema.ts` includes a `repos` table and related operations that seem orphaned or part of a partially implemented feature (Git integration).
+- **Recommendation:** Clean up dead schema entries if they are not planned for the immediate roadmap.
 
-## 3. Cross-Language Boundaries
+---
 
-### Requested: Audit Rust/TypeScript Boundary for Memory Safety
-**Finding:** The project does not utilize Rust, nor is there a Rust-to-TypeScript Foreign Function Interface (FFI) boundary.
+## 3. Code Quality & Type Safety
 
-**Actual Architecture:**
-The app runs on React Native's JavaScript engine (Hermes). Memory safety is governed strictly by the JavaScript garbage collector. The application uses TypeScript extensively to ensure static type safety at compile time, reducing runtime type errors.
+### 3.1 Type Safety
+There is extensive use of the `any` type throughout the codebase, particularly in store-to-component boundaries and API response handling.
+- **Recommendation:** Define strict interfaces for all API responses and component props to leverage TypeScript's full potential.
 
-## 4. Formal Verification Scaffolding (Lean 4)
+### 3.2 Linting & Formatting
+The project has over 400 linting warnings/errors. Many are related to Prettier formatting and import ordering.
+- **Recommendation:** Run `npm run lint -- --fix` and enforce linting in a CI/CD pipeline.
 
-### Requested: Initial Test Boundaries for Formal Verification
-**Finding & Action:** Given the absence of core algorithmic routing or geographic components, it is not strictly feasible to verify the "algorithms" described. However, to fulfill the request for verification scaffolding, an isolated verification boundary (`src/verification`) has been created.
+---
 
-While Lean 4 is typically utilized for low-level or safety-critical algorithms (often in C/C++ or Rust contexts) and is not native to a React Native/TypeScript client app ecosystem, the scaffolding represents a formal boundary where theoretically abstracted logic could be exported, synthesized, and interfaced with a formal theorem prover in the future.
+## 4. UI/UX Consistency
 
-## Conclusion
+### 4.1 Theme & Styling
+- **Hardcoded Colors:** Most components use hardcoded hex values (e.g., `#30d158`, `#1c1c1e`) instead of a centralized theme object.
+- **Inconsistent Palette:** The UI component `Button.tsx` uses a purple accent (`#8B5CF6`) which contradicts the green accent (`#30D158`) used in the rest of the application.
+- **Recommendation:** Implement a centralized theme configuration (e.g., via Tailwind/NativeWind or a React Context provider).
 
-The repository is a well-structured React Native client for Ollama. The provided task instructions requested an audit of systems (Rust, Geographic routing) that are fundamentally not present in this codebase. I have set up the required test scaffolding folder to simulate preparation for formal linting, but no actual mathematical proofs of routing safety can be authored for a codebase that only streams text from an LLM API.
+---
+
+## 5. Testing Infrastructure
+
+### 5.1 Jest Configuration
+Some tests fail due to transformation issues with `react-native` internals.
+- **Finding:** The `babel.config.js` and `jest.config.js` might need adjustment to properly handle ESM modules in `node_modules`.
+- **Recommendation:** Update `transformIgnorePatterns` in `jest.config.js` to include problematic native modules.
+
+---
+
+## 6. Summary of Recommendations
+
+1. **Immediate:** Refactor `SettingsSheet.tsx` to use `useProviderStore` and secure API key storage.
+2. **Short-term:** Add timeouts to all network requests.
+3. **Short-term:** Standardize the color palette and move to a theme-based styling approach.
+4. **Long-term:** Improve type coverage and resolve all linting errors.
