@@ -160,6 +160,35 @@ export interface GitStatusResult {
   behind: number;
 }
 
+// ── Security Helpers ──
+
+export function assertSafePath(pathStr: string): void {
+  if (pathStr.includes('\0')) {
+    throw new Error('Path contains null bytes');
+  }
+  if (pathStr.startsWith('/')) {
+    throw new Error('Absolute paths are not allowed');
+  }
+  const parts = pathStr.split('/');
+  for (const part of parts) {
+    if (part === '..') {
+      throw new Error('Directory traversal is not allowed');
+    }
+  }
+}
+
+export function assertSafeRepoId(repoId: string): void {
+  if (
+    repoId.includes('\0') ||
+    repoId.includes('/') ||
+    repoId.includes('\\') ||
+    repoId === '..' ||
+    repoId === '.'
+  ) {
+    throw new Error('Invalid repository ID');
+  }
+}
+
 // ── Base directory for all cloned repos ──
 
 export function getReposBaseDir(): string {
@@ -167,6 +196,7 @@ export function getReposBaseDir(): string {
 }
 
 export function getRepoDir(repoId: string): string {
+  assertSafeRepoId(repoId);
   return `${getReposBaseDir()}/${repoId}`;
 }
 
@@ -363,6 +393,7 @@ export async function getCurrentBranch(repoId: string): Promise<string | undefin
 // ── File operations ──
 
 export async function listDir(repoId: string, subPath: string = ''): Promise<FileEntry[]> {
+  if (subPath) assertSafePath(subPath);
   const dirPath = subPath ? `${getRepoDir(repoId)}/${subPath}` : getRepoDir(repoId);
   const dir = new Directory(dirPath);
 
@@ -395,12 +426,14 @@ export async function listDir(repoId: string, subPath: string = ''): Promise<Fil
 }
 
 export async function readFile(repoId: string, filePath: string): Promise<string> {
+  assertSafePath(filePath);
   const dirPath = getRepoDir(repoId);
   const file = new File(`${dirPath}/${filePath}`);
   return await file.text();
 }
 
 export async function writeFile(repoId: string, filePath: string, content: string): Promise<void> {
+  assertSafePath(filePath);
   const dirPath = getRepoDir(repoId);
   const fullPath = `${dirPath}/${filePath}`;
   const parentDirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
@@ -413,6 +446,7 @@ export async function writeFile(repoId: string, filePath: string, content: strin
 }
 
 export async function deleteFile(repoId: string, filePath: string): Promise<void> {
+  assertSafePath(filePath);
   const dirPath = getRepoDir(repoId);
   const file = new File(`${dirPath}/${filePath}`);
   if (file.exists) file.delete();
