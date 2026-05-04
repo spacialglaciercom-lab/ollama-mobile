@@ -192,9 +192,10 @@ export async function cloneRepo(
     });
   }
 
+  const http = (await import('isomorphic-git/http/web')).default;
   await git.clone({
     fs: expoFS,
-    http: require('isomorphic-git/http/web'),
+    http,
     dir: dirPath,
     url,
     ref: branch,
@@ -228,9 +229,10 @@ export async function pullRepo(
     });
   }
 
+  const http = (await import('isomorphic-git/http/web')).default;
   await git.pull({
     fs: expoFS,
-    http: require('isomorphic-git/http/web'),
+    http,
     dir: dirPath,
     ref: branch,
     singleBranch: true,
@@ -253,9 +255,10 @@ export async function pushRepo(
     });
   }
 
+  const http = (await import('isomorphic-git/http/web')).default;
   await git.push({
     fs: expoFS,
-    http: require('isomorphic-git/http/web'),
+    http,
     dir: dirPath,
     ref: branch,
     ...authCallbacks,

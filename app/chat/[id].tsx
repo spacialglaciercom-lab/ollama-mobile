@@ -1,7 +1,6 @@
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, router } from 'expo-router';
+import React, { useState, useRef, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocalSearchParams, router } from 'expo-router';
 import {
   View,
   FlatList,
@@ -28,15 +27,13 @@ import { useServerStore } from '../../src/store/useServerStore';
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
-    conversations,
     messages,
     createConversation,
     addMessage,
     setActiveConversation,
     loadMessages,
-    updateConversationTitle,
   } = useChatStore();
-  const { selectedModel, selectModel, fetchModels } = useModelStore();
+  const { selectedModel, selectModel } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -49,7 +46,7 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
+  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -78,7 +75,6 @@ export default function ChatScreen() {
     const userText = inputText.trim();
     setInputText('');
     setStreamingContent('');
-    setTokenStats(null);
 
     let currentId = id === 'new' ? '' : id;
 

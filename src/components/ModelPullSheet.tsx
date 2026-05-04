@@ -72,7 +72,9 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
             if (data.total && data.completed) {
               setProgress(data.completed / data.total);
             }
-          } catch {}
+          } catch (e) {
+            // Ignore parse errors for partial lines
+          }
         }
       }
 

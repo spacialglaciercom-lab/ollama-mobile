@@ -9,7 +9,7 @@ interface JulesDebuggerProps {
 
 /**
  * JulesDebugger - A simple debug component for testing Jules AI API integration
- * 
+ *
  * Usage:
  * <JulesDebugger apiKey="your-jules-api-key" />
  */
@@ -121,17 +121,26 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sources</Text>
-        <Button title={isLoading ? 'Loading...' : 'Fetch Sources'} onPress={handleFetchSources} disabled={isLoading} />
-        
+        <Button
+          title={isLoading ? 'Loading...' : 'Fetch Sources'}
+          onPress={handleFetchSources}
+          disabled={isLoading}
+        />
+
         {sources.length > 0 && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Select Source</Text>
             <View style={styles.pickerContainer}>
-              <Text style={[styles.pickerText, selectedSource ? styles.pickerTextSelected : styles.pickerTextEmpty]}>
+              <Text
+                style={[
+                  styles.pickerText,
+                  selectedSource ? styles.pickerTextSelected : styles.pickerTextEmpty,
+                ]}
+              >
                 {selectedSource || 'Select a source...'}
               </Text>
             </View>
-            <ScrollView style={styles.sourceList} nestedScrollEnabled={true}>
+            <ScrollView style={styles.sourceList} nestedScrollEnabled>
               {sources.map((source) => (
                 <Button
                   key={source}
@@ -169,7 +178,7 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
       {sessionId ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Session Result</Text>
-          <Text style={styles.sessionId} selectable={true}>
+          <Text style={styles.sessionId} selectable>
             Session ID: {sessionId}
           </Text>
         </View>

@@ -83,34 +83,34 @@ export interface JulesSettingsState {
   // Providers
   providers: JulesProviderConfig[];
   activeProviderId: string | null;
-  
+
   // Connection state
   connectionStatus: Record<string, JulesProviderStatus>;
-  
+
   // Actions
   addProvider: (config: ProviderFactoryConfig) => Promise<JulesProviderConfig>;
   updateProvider: (id: string, updates: Partial<JulesProviderConfig>) => Promise<void>;
   removeProvider: (id: string) => Promise<void>;
   setActiveProvider: (id: string) => void;
-  
+
   // Connection testing
   testProviderConnection: (id: string) => Promise<boolean>;
   testAllConnections: () => Promise<Record<string, boolean>>;
-  
+
   // Key management
   saveApiKey: (id: string, apiKey: string) => Promise<void>;
   getApiKey: (id: string) => Promise<string | null>;
   removeApiKey: (id: string) => Promise<void>;
-  
+
   // Defaults
   setDefaultSource: (providerId: string, sourceId: string) => Promise<void>;
   setDefaultModel: (providerId: string, model: string) => Promise<void>;
-  
+
   // Status helpers
   getProviderStatus: (id: string) => JulesProviderStatus;
   getReadyProviders: () => JulesProviderConfig[];
   getConfiguredProviders: () => JulesProviderConfig[];
-  
+
   // Provider factory
   createProvider: (config: ProviderFactoryConfig) => JulesProviderInstance;
 }

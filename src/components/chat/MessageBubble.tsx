@@ -52,12 +52,7 @@ export function MessageBubble({
           selected && styles.bubbleWrapSelected,
         ]}
       >
-        <View
-          style={[
-            styles.bubble,
-            isUser ? styles.bubbleUser : styles.bubbleAssistant,
-          ]}
-        >
+        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
           <Text style={[styles.bubbleText, isUser ? styles.userText : styles.assistantText]}>
             {content}
           </Text>
@@ -102,6 +97,11 @@ const styles = StyleSheet.create({
   },
   userText: { color: '#fff' },
   assistantText: { color: '#fff' },
-  systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic', textAlign: 'center' },
+  systemText: {
+    color: 'rgba(48,209,88,0.7)',
+    fontSize: 13,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
   cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
 });

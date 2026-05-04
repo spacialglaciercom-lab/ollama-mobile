@@ -31,7 +31,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setAutoSave,
     autoDeleteDays,
     setAutoDeleteDays,
-    cleanupOldConversations
+    cleanupOldConversations,
   } = useChatStore();
 
   const [showForm, setShowForm] = useState(false);

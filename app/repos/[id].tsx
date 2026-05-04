@@ -56,7 +56,9 @@ export default function RepoBrowserScreen() {
       const [s, b] = await Promise.all([getStatus(id), getCurrentBranch(id)]);
       setGitStatus(s);
       if (b) setBranch(b);
-    } catch {}
+    } catch (e) {
+      // Ignore errors loading status
+    }
   }, [id]);
 
   useEffect(() => {

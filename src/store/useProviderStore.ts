@@ -32,7 +32,11 @@ interface ProviderStore {
   setActiveProvider: (id: string) => void;
   testProviderConnection: (id: string) => Promise<boolean>;
   testAllConnections: () => Promise<Record<string, boolean>>;
-  validateConnection: (type: ProviderConfig['type'], url: string, apiKey: string) => Promise<boolean>;
+  validateConnection: (
+    type: ProviderConfig['type'],
+    url: string,
+    apiKey: string
+  ) => Promise<boolean>;
   saveApiKey: (id: string, apiKey: string) => Promise<void>;
   getApiKey: (id: string) => Promise<string | null>;
   removeApiKey: (id: string) => Promise<void>;
@@ -82,7 +86,7 @@ export const useProviderStore = create<ProviderStore>()(
       updateProvider: async (id: string, updates: Partial<ProviderConfig>): Promise<void> => {
         set((state) => ({
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, ...updates, updatedAt: Date.now() } as ProviderConfig : p
+            p.id === id ? ({ ...p, ...updates, updatedAt: Date.now() } as ProviderConfig) : p
           ),
         }));
       },
@@ -118,12 +122,12 @@ export const useProviderStore = create<ProviderStore>()(
           set((state) => ({
             providers: state.providers.map((p) =>
               p.id === id
-                ? {
+                ? ({
                     ...p,
                     isConnected,
                     isConfigured: true,
                     lastConnectionTest: isConnected ? Date.now() : p.lastConnectionTest,
-                  } as ProviderConfig
+                  } as ProviderConfig)
                 : p
             ),
             connectionStatus: {
@@ -143,7 +147,7 @@ export const useProviderStore = create<ProviderStore>()(
           const errorMessage = error instanceof Error ? error.message : String(error);
           set((state) => ({
             providers: state.providers.map((p) =>
-              p.id === id ? { ...p, isConnected: false } as ProviderConfig : p
+              p.id === id ? ({ ...p, isConnected: false } as ProviderConfig) : p
             ),
             connectionStatus: {
               ...state.connectionStatus,
@@ -178,7 +182,7 @@ export const useProviderStore = create<ProviderStore>()(
         await saveProviderApiKey(provider.type, id, apiKey);
         set((state) => ({
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: true } as ProviderConfig : p
+            p.id === id ? ({ ...p, isConfigured: true } as ProviderConfig) : p
           ),
         }));
       },
@@ -195,7 +199,7 @@ export const useProviderStore = create<ProviderStore>()(
         await removeProviderApiKey(provider.type, id);
         set((state) => ({
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: false, isConnected: false } as ProviderConfig : p
+            p.id === id ? ({ ...p, isConfigured: false, isConnected: false } as ProviderConfig) : p
           ),
         }));
       },
