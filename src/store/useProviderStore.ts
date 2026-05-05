@@ -12,10 +12,12 @@ import {
 } from '../api/providerFactory';
 import {
   ProviderConfig,
-  ProviderStatus,
   ProviderFactoryConfig,
+  ProviderStatus,
   AnyProviderInstance,
   PROVIDER_STORAGE_KEYS,
+  DEFAULT_OLLAMA_CLOUD_PROVIDER,
+  DEFAULT_OLLAMA_LOCAL_PROVIDER,
   isJulesProvider,
 } from '../api/providerTypes';
 
@@ -62,8 +64,13 @@ export const useProviderStore = create<ProviderStore>()(
           await saveProviderApiKey(newConfig.type, newConfig.id, config.apiKey);
           const isConnected = await testConnectionWithKey(
             newConfig.type,
-            (newConfig as any).url || '',
-            config.apiKey
+            factoryConfig.url ||
+              (newConfig.type === 'ollama-cloud'
+                ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url
+                : newConfig.type === 'ollama-local'
+                  ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url
+                  : ''),
+            factoryConfig.apiKey
           );
           newConfig.isConnected = isConnected;
           if (isConnected) {
@@ -80,11 +87,24 @@ export const useProviderStore = create<ProviderStore>()(
       },
 
       updateProvider: async (id: string, updates: Partial<ProviderConfig>): Promise<void> => {
-        set((state) => ({
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, ...updates, updatedAt: Date.now() } as ProviderConfig : p
-          ),
-        }));
+        const { providers } = get();
+        const existingIndex = providers.findIndex((p) => p.id === id);
+
+        if (existingIndex === -1) {
+          throw new Error(`Provider with id ${id} not found`);
+        }
+
+        const updatedProvider = {
+          ...providers[existingIndex],
+          ...updates,
+          updatedAt: Date.now(),
+        };
+
+        set((state) => {
+          const newProviders = [...state.providers];
+          newProviders[existingIndex] = updatedProvider as ProviderConfig;
+          return { providers: newProviders };
+        });
       },
 
       removeProvider: async (id: string): Promise<void> => {
@@ -97,9 +117,14 @@ export const useProviderStore = create<ProviderStore>()(
         const newConnectionStatus = { ...connectionStatus };
         delete newConnectionStatus[id];
 
-        set((state) => ({
-          providers: state.providers.filter((p) => p.id !== id),
-          activeProviderId: activeProviderId === id ? null : activeProviderId,
+        // Find new active provider if current is being removed
+        const newProviders = providers.filter((p) => p.id !== id);
+        const newActiveId =
+          activeProviderId === id ? (newProviders[0]?.id ?? null) : activeProviderId;
+
+        set({
+          providers: newProviders,
+          activeProviderId: newActiveId,
           connectionStatus: newConnectionStatus,
         }));
       },
@@ -142,9 +167,7 @@ export const useProviderStore = create<ProviderStore>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           set((state) => ({
-            providers: state.providers.map((p) =>
-              p.id === id ? { ...p, isConnected: false } as ProviderConfig : p
-            ),
+            providers: state.providers.map((p) => (p.id === id ? { ...p, isConnected: false } : p)),
             connectionStatus: {
               ...state.connectionStatus,
               [id]: {
@@ -178,9 +201,14 @@ export const useProviderStore = create<ProviderStore>()(
         if (!provider) throw new Error(`Provider with id ${id} not found`);
         await saveProviderApiKey(provider.type, id, apiKey);
         set((state) => ({
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: true } as ProviderConfig : p
-          ),
+          providers: state.providers.map((p) => (p.id === id ? { ...p, isConfigured: true } : p)),
+          connectionStatus: {
+            ...state.connectionStatus,
+            [id]: {
+              ...state.connectionStatus[id],
+              isConfigured: true,
+            },
+          },
         }));
       },
 

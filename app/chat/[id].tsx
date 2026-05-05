@@ -20,6 +20,7 @@ import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
+import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -103,6 +104,10 @@ export default function ChatScreen() {
     if (systemPromptText && !history.find((m) => m.role === 'system')) {
       history.unshift({ role: 'system', content: systemPromptText });
     }
+    localMessages
+      .filter((m) => m.role !== 'system')
+      .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
+    apiMessages.push({ role: userMsg.role, content: text });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
