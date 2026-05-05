@@ -1,6 +1,6 @@
 /**
  * Unified Provider Types
- * Type definitions for all AI providers (Jules, Ollama Cloud, Local Ollama)
+ * Type definitions for all AI providers (Jules, Ollama Cloud, Local Ollama, ZeroClaw)
  */
 
 import { JulesSource } from './types';
@@ -9,7 +9,7 @@ import { JulesSource } from './types';
 // Provider Type Identifiers
 // ============================================
 
-export type ProviderType = 'jules' | 'ollama-cloud' | 'ollama-local';
+export type ProviderType = 'jules' | 'ollama-cloud' | 'ollama-local' | 'zeroclaw';
 
 // ============================================
 // Base Provider Configuration
@@ -46,6 +46,16 @@ export interface OllamaLocalProviderConfig extends BaseProviderConfig {
   type: 'ollama-local';
   url: string; // e.g., 'http://192.168.1.100:11434'
   apiKey?: string; // Optional for local servers
+  defaultModel?: string;
+}
+
+/**
+ * ZeroClaw provider configuration
+ */
+export interface ZeroClawProviderConfig extends BaseProviderConfig {
+  type: 'zeroclaw';
+  url: string; // e.g., 'http://localhost:8080'
+  apiKey?: string;
   defaultModel?: string;
 }
 
@@ -94,7 +104,7 @@ export interface ProviderStatus {
 export interface ProviderFactoryConfig {
   type: ProviderType;
   name?: string;
-  url?: string; // For Ollama providers
+  url?: string; // For Ollama/ZeroClaw providers
   apiKey?: string;
   defaultModel?: string;
   defaultSourceId?: string; // For Jules
@@ -126,6 +136,13 @@ export interface OllamaCloudProviderInstance extends BaseProviderInstance<Ollama
 export interface OllamaLocalProviderInstance extends BaseProviderInstance<OllamaLocalProviderConfig> {
   getModels: () => Promise<any[]>;
   chat: (messages: any[], model?: string) => Promise<any>;
+}
+
+/**
+ * ZeroClaw provider instance
+ */
+export interface ZeroClawProviderInstance extends BaseProviderInstance<ZeroClawProviderConfig> {
+  chat: (messages: any[]) => Promise<any>;
 }
 
 /**
@@ -203,6 +220,17 @@ export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<
 };
 
 /**
+ * Default ZeroClaw configuration
+ */
+export const DEFAULT_ZEROCLAW_PROVIDER: Omit<ZeroClawProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+  name: 'ZeroClaw',
+  type: 'zeroclaw',
+  url: 'http://localhost:8080',
+  isConfigured: false,
+  isConnected: false,
+};
+
+/**
  * Default Jules configuration
  */
 export const DEFAULT_JULES_PROVIDER: Omit<JulesProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -231,6 +259,13 @@ export function isOllamaLocalProvider(config: ProviderConfig): config is OllamaL
 }
 
 /**
+ * Check if a provider config is ZeroClaw
+ */
+export function isZeroClawProvider(config: ProviderConfig): config is ZeroClawProviderConfig {
+  return config.type === 'zeroclaw';
+}
+
+/**
  * Check if a provider config is Jules
  */
 export function isJulesProvider(config: ProviderConfig): config is JulesProviderConfig {
@@ -253,6 +288,13 @@ export function isOllamaLocalInstance(
   instance: AnyProviderInstance
 ): instance is OllamaLocalProviderInstance {
   return instance.config.type === 'ollama-local';
+}
+
+/**
+ * Check if a provider instance is ZeroClaw
+ */
+export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+  return instance.config.type === 'zeroclaw';
 }
 
 /**

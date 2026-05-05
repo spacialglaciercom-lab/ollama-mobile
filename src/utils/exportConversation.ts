@@ -22,7 +22,6 @@ export async function exportConversationAsMarkdown(
 
 `;
 
-  // Add system prompt if exists
   if (conversation.systemPrompt) {
     markdown += `**System Prompt:**
 
@@ -33,7 +32,6 @@ ${conversation.systemPrompt}
 `;
   }
 
-  // Add messages
   for (const msg of messages) {
     if (msg.role === 'system') continue;
 
@@ -51,7 +49,6 @@ ${conversation.systemPrompt}
 `;
   }
 
-  // Write to file and share
   const filename = `${conversation.title.replace(/[^a-z0-9]/gi, '_')}_${date}.md`;
   const fs = FileSystem as any;
   const targetUri = `${fs.documentDirectory}${filename}`;

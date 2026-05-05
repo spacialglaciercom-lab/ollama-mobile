@@ -5,6 +5,7 @@
  * Supported Providers:
  * - Ollama Cloud: Bearer token authentication
  * - Local Ollama: Optional Bearer token authentication
+ * - ZeroClaw: Agent Client Protocol (ACP) over WebSockets
  * - Google Jules: X-Goog-Api-Key header authentication
  */
 
@@ -18,6 +19,7 @@ export type {
   BaseProviderConfig,
   OllamaCloudProviderConfig,
   OllamaLocalProviderConfig,
+  ZeroClawProviderConfig,
   JulesProviderConfig,
   ProviderConfig,
   ProviderStatus,
@@ -25,6 +27,7 @@ export type {
   BaseProviderInstance,
   OllamaCloudProviderInstance,
   OllamaLocalProviderInstance,
+  ZeroClawProviderInstance,
   JulesProviderInstance,
   AnyProviderInstance,
 } from './providerTypes';
@@ -34,12 +37,15 @@ export {
   PROVIDER_SECURE_KEYS,
   DEFAULT_OLLAMA_CLOUD_PROVIDER,
   DEFAULT_OLLAMA_LOCAL_PROVIDER,
+  DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
   isOllamaCloudProvider,
   isOllamaLocalProvider,
+  isZeroClawProvider,
   isJulesProvider,
   isOllamaCloudInstance,
   isOllamaLocalInstance,
+  isZeroClawInstance,
   isJulesInstance,
 } from './providerTypes';
 

@@ -27,7 +27,7 @@ jest.mock('react-native', () => {
 
 const TEST_API_KEY = 'test-api-key-12345';
 
-describe('JulesDebugger Component', () => {
+describe('JulesDebugger', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -95,6 +95,10 @@ describe('JulesDebugger Component', () => {
     });
 
     it('should display sources after successful fetch', async () => {
+      const mockSources = [
+        { id: 'source-1', name: 'my-repo', repositoryUri: 'https://github.com/user/my-repo' },
+        { id: 'source-2', name: 'another-repo', repositoryUri: 'https://github.com/user/another-repo' },
+      ];
       mockGetSources.mockResolvedValueOnce(mockSources);
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
@@ -102,8 +106,8 @@ describe('JulesDebugger Component', () => {
       fireEvent.press(screen.getByText('Fetch Sources'));
 
       await waitFor(() => {
-        expect(screen.getByText('repo-1')).toBeTruthy();
-        expect(screen.getByText('repo-2')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'my-repo' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'another-repo' })).toBeTruthy();
       });
     });
 
@@ -156,7 +160,7 @@ describe('JulesDebugger Component', () => {
 
       fireEvent.press(screen.getByText('Fetch Sources'));
       await waitFor(() => {
-        expect(screen.getByText('my-repo')).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'my-repo' })).toBeTruthy();
       });
 
       // Don't select a source
@@ -172,7 +176,7 @@ describe('JulesDebugger Component', () => {
 
       fireEvent.press(screen.getByText('Fetch Sources'));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
 
       // Don't enter a prompt
@@ -188,9 +192,9 @@ describe('JulesDebugger Component', () => {
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
       // Fetch sources first
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
 
       // Enter prompt
@@ -220,7 +224,7 @@ describe('JulesDebugger Component', () => {
 
       fireEvent.press(screen.getByText('Fetch Sources'));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
 
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
@@ -242,7 +246,7 @@ describe('JulesDebugger Component', () => {
 
       fireEvent.press(screen.getByText('Fetch Sources'));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
 
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
@@ -399,7 +403,7 @@ describe('JulesDebugger Component', () => {
 
       fireEvent.press(screen.getByText('Fetch Sources'));
       await waitFor(() => {
-        fireEvent.press(screen.getByText('my-repo'));
+        fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
 
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');

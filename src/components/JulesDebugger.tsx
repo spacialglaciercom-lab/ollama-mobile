@@ -25,7 +25,6 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
 
   const addLog = (message: string) => {
     setLogs((prev) => [...prev, message]);
-    console.log(`[JulesDebugger] ${message}`);
   };
 
   const handleFetchSources = async () => {

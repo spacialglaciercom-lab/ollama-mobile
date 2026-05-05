@@ -65,7 +65,7 @@ export interface PullResponse {
   completed?: number;
 }
 
-export type ServerType = 'ollama' | 'zeroclaw';
+export type ServerType = 'ollama' | 'zeroclaw' | 'jules';
 
 export interface ServerInfo {
   id: string;
