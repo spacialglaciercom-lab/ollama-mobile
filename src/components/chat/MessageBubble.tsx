@@ -18,12 +18,24 @@ export function MessageBubble({
   isStreaming,
 }: MessageBubbleProps) {
   const isUser = role === 'user';
+  const isAssistant = role === 'assistant';
   const isSystem = role === 'system';
 
   const handleLongPress = () => {
+    if (isSystem) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onLongPress?.();
   };
+
+  if (isSystem) {
+    return (
+      <View style={styles.bubbleWrapSystem}>
+        <View style={styles.bubbleSystem}>
+          <Text style={styles.systemText}>{content}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -35,23 +47,14 @@ export function MessageBubble({
       <View
         style={[
           styles.bubbleWrap,
-          isUser
-            ? styles.bubbleWrapUser
-            : isSystem
-              ? styles.bubbleWrapSystem
-              : styles.bubbleWrapAssistant,
+          isUser ? styles.bubbleWrapUser : styles.bubbleWrapAssistant,
           selected && styles.bubbleWrapSelected,
         ]}
       >
-        <View
-          style={[
-            styles.bubble,
-            isUser ? styles.bubbleUser : isSystem ? styles.bubbleSystem : styles.bubbleAssistant,
-          ]}
-        >
-          <Text style={isSystem ? styles.systemText : styles.bubbleText}>{content}</Text>
+        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
+          <Text style={styles.bubbleText}>{content}</Text>
+          {isStreaming && isAssistant && <Text style={styles.cursor}>▌</Text>}
         </View>
-        {isStreaming && role === 'assistant' && <Text style={styles.cursor}>▌</Text>}
       </View>
     </TouchableOpacity>
   );
@@ -86,17 +89,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  bubbleText: {
-    fontSize: 17,
-  },
-  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  bubbleSystemText: {
+  bubbleText: { color: '#fff', fontSize: 16 },
+  systemText: {
     color: 'rgba(48,209,88,0.7)',
     fontSize: 13,
-    lineHeight: 18,
     fontStyle: 'italic',
+    textAlign: 'center',
   },
-  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic' },
   cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
 });

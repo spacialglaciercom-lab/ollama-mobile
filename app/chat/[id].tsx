@@ -223,19 +223,7 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={allMessages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          if (item.id === 'streaming') {
-            return <StreamingBubble content={item.content} />;
-          }
-          return (
-            <MessageBubble
-              role={item.role}
-              content={item.content}
-              selected={selectedMessage?.id === item.id}
-              onLongPress={() => setSelectedMessage(item)}
-            />
-          );
-        }}
+        renderItem={renderItem}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }

@@ -172,9 +172,9 @@ export async function searchConversations(query: string): Promise<Conversation[]
   const searchTerm = `%${query}%`;
   const rows = await db.getAllAsync<any>(
     `SELECT * FROM conversations 
-     WHERE title LIKE ? OR system_prompt LIKE ? 
+     WHERE title LIKE ? OR system_prompt LIKE ? OR id IN (SELECT conversation_id FROM messages WHERE content LIKE ?)
      ORDER BY updated_at DESC`,
-    [searchTerm, searchTerm]
+    [searchTerm, searchTerm, searchTerm]
   );
   return rows.map((row) => ({
     id: row.id,
