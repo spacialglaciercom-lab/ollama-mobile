@@ -16,8 +16,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
-import { useJulesSettingsStore } from '../store/useJulesSettingsStore';
 import { ProviderFactoryConfig } from '../api/julesTypes';
+import { useJulesSettingsStore } from '../store/useJulesSettingsStore';
 
 interface JulesSettingsSheetProps {
   onClose: () => void;
@@ -92,10 +92,10 @@ export default function JulesSettingsSheet({
       };
 
       const newProvider = await addProvider(config);
-      
+
       // Save the API key securely
       await saveApiKey(newProvider.id, newProviderApiKey.trim());
-      
+
       // Test the connection
       await testProviderConnection(newProvider.id);
 
@@ -212,7 +212,7 @@ export default function JulesSettingsSheet({
         {/* Existing Providers */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Configured Providers</Text>
-          
+
           {providers.length === 0 ? (
             <Text style={styles.emptyText}>No providers configured yet</Text>
           ) : (
@@ -281,10 +281,7 @@ export default function JulesSettingsSheet({
 
                 <View style={styles.providerActions}>
                   {activeProviderId !== provider.id ? (
-                    <Button
-                      title="Set Active"
-                      onPress={() => handleSetActive(provider.id)}
-                    />
+                    <Button title="Set Active" onPress={() => handleSetActive(provider.id)} />
                   ) : null}
                   <Button
                     title={isTesting === provider.id ? 'Testing...' : 'Test Connection'}
@@ -305,7 +302,7 @@ export default function JulesSettingsSheet({
         {/* Add New Provider */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add New Provider</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Provider Name (optional)</Text>
             <TextInput
@@ -325,7 +322,7 @@ export default function JulesSettingsSheet({
               onChangeText={setNewProviderApiKey}
               placeholder="JULES_API_KEY"
               placeholderTextColor="#666"
-              secureTextEntry={true}
+              secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -378,7 +375,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 12,
   },
-  
+
   // Status Cards
   statusGrid: {
     flexDirection: 'row',
@@ -410,7 +407,7 @@ const styles = StyleSheet.create({
     color: '#aaa',
     marginTop: 4,
   },
-  
+
   // Empty state
   emptyText: {
     color: '#666',
@@ -418,7 +415,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 20,
   },
-  
+
   // Provider Cards
   providerCard: {
     backgroundColor: '#1c1c1e',
@@ -459,11 +456,11 @@ const styles = StyleSheet.create({
   badgeConnected: {
     backgroundColor: '#34C759',
   },
-  
+
   providerBody: {
     marginBottom: 12,
   },
-  
+
   // Inputs
   inputGroup: {
     marginBottom: 12,
@@ -493,7 +490,7 @@ const styles = StyleSheet.create({
   eyeIconText: {
     fontSize: 18,
   },
-  
+
   // Default Info
   defaultInfo: {
     flexDirection: 'row',
@@ -509,14 +506,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#34C759',
   },
-  
+
   // Actions
   providerActions: {
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'flex-end',
   },
-  
+
   // Footer
   footer: {
     padding: 16,

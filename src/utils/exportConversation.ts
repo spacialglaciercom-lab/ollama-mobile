@@ -10,14 +10,14 @@ export async function exportConversationAsMarkdown(
   const date = new Date(conversation.createdAt).toISOString().split('T')[0];
   const model = conversation.model;
 
-  let markdown = `# ${conversation.title}\n\n`;
-  markdown += `**Date:** ${date}  \n`;
-  markdown += `**Model:** ${model}\n\n`;
-  markdown += `---\n\n`;
+  let markdown = '# ' + conversation.title + '\n\n';
+  markdown += '**Date:** ' + date + '  \n';
+  markdown += '**Model:** ' + model + '\n\n';
+  markdown += '---\n\n';
 
   // Add system prompt if exists
   if (conversation.systemPrompt) {
-    markdown += `**System Prompt:**\n\n${conversation.systemPrompt}\n\n---\n\n`;
+    markdown += '**System Prompt:**\n\n' + conversation.systemPrompt + '\n\n---\n\n';
   }
 
   // Add messages
@@ -30,16 +30,17 @@ export async function exportConversationAsMarkdown(
       minute: '2-digit',
     });
 
-    markdown += `### ${roleLabel} — ${time}\n\n`;
-    markdown += `${msg.content}\n\n`;
+    markdown += '### ' + roleLabel + ' — ' + time + '\n\n';
+    markdown += msg.content + '\n\n';
   }
 
   // Write to file and share
-  const filename = `${conversation.title.replace(/[^a-z0-9]/gi, '_')}_${date}.md`;
-  const fileUri = `${FileSystem.documentDirectory}${filename}`;
-  
+  const filename = conversation.title.replace(/[^a-z0-9]/gi, '_') + '_' + date + '.md';
+  const docDir = (FileSystem as any).documentDirectory || '';
+  const fileUri = docDir + filename;
+
   await FileSystem.writeAsStringAsync(fileUri, markdown, {
-    encoding: FileSystem.EncodingType.UTF8,
+    encoding: (FileSystem as any).EncodingType?.UTF8 || 'utf8',
   });
 
   await Sharing.shareAsync(fileUri, {
@@ -55,13 +56,13 @@ export function conversationToMarkdown(
 ): string {
   const date = new Date(conversation.createdAt).toISOString().split('T')[0];
 
-  let markdown = `# ${conversation.title}\n\n`;
-  markdown += `**Date:** ${date}  \n`;
-  markdown += `**Model:** ${conversation.model}\n\n`;
-  markdown += `---\n\n`;
+  let markdown = '# ' + conversation.title + '\n\n';
+  markdown += '**Date:** ' + date + '  \n';
+  markdown += '**Model:** ' + conversation.model + '\n\n';
+  markdown += '---\n\n';
 
   if (conversation.systemPrompt) {
-    markdown += `**System Prompt:**\n\n${conversation.systemPrompt}\n\n---\n\n`;
+    markdown += '**System Prompt:**\n\n' + conversation.systemPrompt + '\n\n---\n\n';
   }
 
   for (const msg of messages) {
@@ -73,8 +74,8 @@ export function conversationToMarkdown(
       minute: '2-digit',
     });
 
-    markdown += `### ${roleLabel} — ${time}\n\n`;
-    markdown += `${msg.content}\n\n`;
+    markdown += '### ' + roleLabel + ' — ' + time + '\n\n';
+    markdown += msg.content + '\n\n';
   }
 
   return markdown;

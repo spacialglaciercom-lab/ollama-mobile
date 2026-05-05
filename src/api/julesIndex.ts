@@ -6,12 +6,7 @@
 // ============================================
 // API Service
 // ============================================
-export {
-  getSources,
-  createSession,
-  approvePlan,
-  sendMessage,
-} from './julesApiService';
+export { getSources, createSession, approvePlan, sendMessage } from './julesApiService';
 
 // ============================================
 // Types
@@ -40,11 +35,7 @@ export type {
   ProviderFactoryConfig,
 } from './julesTypes';
 
-export {
-  DEFAULT_JULES_PROVIDER,
-  JULES_STORAGE_KEYS,
-  JULES_SECURE_KEYS,
-} from './julesTypes';
+export { DEFAULT_JULES_PROVIDER, JULES_STORAGE_KEYS, JULES_SECURE_KEYS } from './julesTypes';
 
 // ============================================
 // Provider Factory

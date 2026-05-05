@@ -8,11 +8,13 @@ import {
   FlatList,
   StyleSheet,
   Switch,
+  Alert,
 } from 'react-native';
 
 import { pingServer } from '../api/ollamaClient';
 import { ServerType } from '../api/types';
 import { pingZeroClaw } from '../api/zeroclawClient';
+import { useChatStore } from '../store/useChatStore';
 import { useServerStore, Server, buildServerUrl } from '../store/useServerStore';
 
 interface SettingsSheetProps {
@@ -23,7 +25,16 @@ interface SettingsSheetProps {
 export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
     useServerStore();
+  const {
+    autoSaveEnabled,
+    setAutoSave,
+    autoDeleteDays,
+    setAutoDeleteDays,
+    cleanupOldConversations,
+  } = useChatStore();
+
   const [showForm, setShowForm] = useState(false);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(autoDeleteDays.toString());
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');

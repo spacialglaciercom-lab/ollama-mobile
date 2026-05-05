@@ -26,7 +26,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadConversations();
     if (activeServer) fetchModels();
-  }, [activeServer?.id, fetchModels, loadConversations]);
+  }, [activeServer, fetchModels, loadConversations]);
 
   const handleNewChat = () => {
     router.push({
