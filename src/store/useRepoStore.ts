@@ -22,7 +22,7 @@ interface RepoStore {
   loadAuthor: () => Promise<void>;
 }
 
-export const useRepoStore = create<RepoStore>()((set, get) => ({
+export const useRepoStore = create<RepoStore>()((set, _get) => ({
   repos: [],
   pat: null,
   authorName: '',

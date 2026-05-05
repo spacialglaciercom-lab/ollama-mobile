@@ -9,9 +9,11 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest --config jest.config.js"
   },
   "dependencies": {
+    "ajv": "^6.12.6",
+    "ajv-keywords": "^3.5.2",
     "buffer": "^6.0.3",
     "expo": "~52.0.0",
     "expo-blur": "~14.0.0",

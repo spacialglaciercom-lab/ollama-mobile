@@ -43,8 +43,6 @@ export function MessageBubble({
       activeOpacity={0.8}
       delayLongPress={300}
       accessibilityRole="button"
-      accessibilityLabel={`Message from ${role}: ${content}`}
-      accessibilityHint="Long press for more actions"
     >
       <View
         style={[

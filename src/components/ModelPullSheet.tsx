@@ -72,7 +72,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
             if (data.total && data.completed) {
               setProgress(data.completed / data.total);
             }
-          } catch {}
+          } catch (err) { console.error(err); }
         }
       }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   TextInput,
@@ -8,11 +9,14 @@ import {
   FlatList,
   StyleSheet,
   Switch,
+  Alert,
 } from 'react-native';
 
+import { getSources } from '../api/julesApiService';
 import { pingServer } from '../api/ollamaClient';
 import { ServerType } from '../api/types';
 import { pingZeroClaw } from '../api/zeroclawClient';
+import { useChatStore } from '../store/useChatStore';
 import { useServerStore, Server, buildServerUrl } from '../store/useServerStore';
 
 interface SettingsSheetProps {
@@ -23,7 +27,16 @@ interface SettingsSheetProps {
 export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
     useServerStore();
+  const {
+    autoSaveEnabled,
+    setAutoSave,
+    autoDeleteDays,
+    setAutoDeleteDays,
+    cleanupOldConversations,
+  } = useChatStore();
+
   const [showForm, setShowForm] = useState(false);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(autoDeleteDays.toString());
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
@@ -35,6 +48,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [enabled, setEnabled] = useState(true);
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
 
   const openAdd = () => {
     setEditingServer(null);
@@ -90,11 +104,25 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setPingResult(null);
     let ok = false;
     const url = buildServerUrl(server);
-    if (server.type === 'zeroclaw') {
-      ok = await pingZeroClaw(url, server.apiKey);
-    } else {
-      ok = await pingServer(url, server.apiKey);
+
+    try {
+      if (server.type === 'zeroclaw') {
+        ok = await pingZeroClaw(url, server.apiKey);
+      } else if (server.type === 'jules') {
+        if (server.apiKey) {
+          const sources = await getSources(server.apiKey);
+          ok = Array.isArray(sources);
+        } else {
+          ok = false;
+        }
+      } else {
+        ok = await pingServer(url, server.apiKey);
+      }
+    } catch (err) {
+      console.error('Ping failed:', err);
+      ok = false;
     }
+
     setPinging(null);
     setPingResult({ id: server.id, ok });
   };
@@ -131,7 +159,9 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
         <View style={styles.serverNameRow}>
           <Text style={[styles.serverName, !item.enabled && styles.textDisabled]}>{item.name}</Text>
           {item.isCloud && <Text style={styles.cloudBadge}>Cloud</Text>}
-          <Text style={styles.typeBadge}>{item.type === 'zeroclaw' ? 'ZeroClaw' : 'Ollama'}</Text>
+          <Text style={styles.typeBadge}>
+            {item.type === 'zeroclaw' ? 'ZeroClaw' : item.type === 'jules' ? 'Jules' : 'Ollama'}
+          </Text>
           {!item.enabled && <Text style={styles.disabledBadge}>Off</Text>}
         </View>
         <Text style={styles.serverUrl} numberOfLines={1}>
@@ -203,19 +233,19 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
                   <TextInput
                     style={styles.autoDeleteInput}
                     value={autoDeleteInput}
-                    onChangeText={setAutoDeleteInput}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor="rgba(235,235,245,0.3)"
+                    onChangeText={(val) => {
+                      setAutoDeleteInput(val);
+                      const days = parseInt(val, 10);
+                      if (!isNaN(days)) setAutoDeleteDays(days);
+                    }}
                     onBlur={() => {
                       const days = parseInt(autoDeleteInput, 10);
-                      if (!isNaN(days) && days >= 0) {
-                        setAutoDeleteDays(days);
-                      } else {
+                      if (isNaN(days)) {
                         setAutoDeleteInput('0');
                         setAutoDeleteDays(0);
                       }
                     }}
+                    keyboardType="number-pad"
                   />
                   <Text style={styles.autoDeleteUnit}>days</Text>
                 </View>
@@ -223,31 +253,18 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
 
               <TouchableOpacity
                 style={styles.cleanupBtn}
-                onPress={() => {
-                  cleanupOldConversations();
-                  Alert.alert('Cleanup', 'Old conversations will be removed in background');
+                onPress={async () => {
+                  await cleanupOldConversations();
+                  Alert.alert('Cleanup', 'Cleanup completed');
                 }}
               >
-                <Text style={styles.cleanupBtnText}>Clean Up Now</Text>
+                <Text style={styles.cleanupBtnText}>Run Cleanup Now</Text>
               </TouchableOpacity>
             </>
           ) : (
             <View style={styles.form}>
               <Text style={styles.formTitle}>{editingServer ? 'Edit Server' : 'Add Server'}</Text>
-
               <View style={styles.formSection}>
-                <View style={styles.formGroup}>
-                  <View style={styles.toggleRow}>
-                    <Text style={styles.fieldLabel}>ENABLED</Text>
-                    <Switch
-                      value={enabled}
-                      onValueChange={setEnabled}
-                      trackColor={{ false: '#3a3a3c', true: 'rgba(48,209,88,0.3)' }}
-                      thumbColor={enabled ? '#30d158' : '#8e8e93'}
-                    />
-                  </View>
-                </View>
-                <View style={styles.formSep} />
                 <View style={styles.formGroup}>
                   <Text style={styles.fieldLabel}>NAME</Text>
                   <TextInput
@@ -286,6 +303,19 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
                         ]}
                       >
                         ZeroClaw
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.typeOption, type === 'jules' && styles.typeOptionActive]}
+                      onPress={() => setType('jules')}
+                    >
+                      <Text
+                        style={[
+                          styles.typeOptionText,
+                          type === 'jules' && styles.typeOptionTextActive,
+                        ]}
+                      >
+                        Jules
                       </Text>
                     </TouchableOpacity>
                   </View>

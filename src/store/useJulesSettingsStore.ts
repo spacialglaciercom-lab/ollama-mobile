@@ -1,16 +1,18 @@
 /**
  * Jules Settings Store
  * Manages Jules provider configurations with persistence and secure key storage
- * 
+ *
  * NOTE: This file is kept for backward compatibility.
  * New code should use the unified useProviderStore from useProviderStore.ts
  */
 
+import * as SecureStore from 'expo-secure-store';
 import { MMKV } from 'react-native-mmkv';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import * as SecureStore from 'expo-secure-store';
 
+import { getSources } from '../api/julesApiService';
+import { JulesProviderFactory } from '../api/julesProviderFactory';
 import {
   JulesProviderConfig,
   JulesProviderInstance,
@@ -21,8 +23,6 @@ import {
   JULES_SECURE_KEYS,
   DEFAULT_JULES_PROVIDER,
 } from '../api/julesTypes';
-import { JulesProviderFactory } from '../api/julesProviderFactory';
-import { getSources } from '../api/julesApiService';
 
 const storage = new MMKV();
 
@@ -43,7 +43,7 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
 
       addProvider: async (factoryConfig: ProviderFactoryConfig): Promise<JulesProviderConfig> => {
         const newConfig = JulesProviderFactory.createConfig(factoryConfig);
-        
+
         // Save API key securely if provided
         if (factoryConfig.apiKey) {
           await SecureStore.setItemAsync(
@@ -64,7 +64,7 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
       updateProvider: async (id: string, updates: Partial<JulesProviderConfig>): Promise<void> => {
         const { providers } = get();
         const existingIndex = providers.findIndex((p) => p.id === id);
-        
+
         if (existingIndex === -1) {
           throw new Error(`Provider with id ${id} not found`);
         }
@@ -86,11 +86,9 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
 
       removeProvider: async (id: string): Promise<void> => {
         const { providers, activeProviderId } = get();
-        
+
         // Remove API key from secure storage
-        await SecureStore.deleteItemAsync(
-          `${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`
-        );
+        await SecureStore.deleteItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`);
 
         // Remove connection status
         const newConnectionStatus = { ...get().connectionStatus };
@@ -98,9 +96,8 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
 
         // Find new active provider if current is being removed
         const newProviders = providers.filter((p) => p.id !== id);
-        const newActiveId = activeProviderId === id 
-          ? (newProviders[0]?.id ?? null) 
-          : activeProviderId;
+        const newActiveId =
+          activeProviderId === id ? (newProviders[0]?.id ?? null) : activeProviderId;
 
         set({
           providers: newProviders,
@@ -124,14 +121,12 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
       testProviderConnection: async (id: string): Promise<boolean> => {
         const { providers } = get();
         const provider = providers.find((p) => p.id === id);
-        
+
         if (!provider) {
           throw new Error(`Provider with id ${id} not found`);
         }
 
-        const apiKey = await SecureStore.getItemAsync(
-          `${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`
-        );
+        const apiKey = await SecureStore.getItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`);
 
         if (!apiKey) {
           // Update status
@@ -159,12 +154,14 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
 
           set((state) => ({
             providers: state.providers.map((p) =>
-              p.id === id ? { 
-                ...p, 
-                isConnected,
-                isConfigured: true,
-                lastConnectionTest: Date.now()
-              } : p
+              p.id === id
+                ? {
+                    ...p,
+                    isConnected,
+                    isConfigured: true,
+                    lastConnectionTest: Date.now(),
+                  }
+                : p
             ),
             connectionStatus: {
               ...state.connectionStatus,
@@ -182,11 +179,9 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
           return isConnected;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          
+
           set((state) => ({
-            providers: state.providers.map((p) =>
-              p.id === id ? { ...p, isConnected: false } : p
-            ),
+            providers: state.providers.map((p) => (p.id === id ? { ...p, isConnected: false } : p)),
             connectionStatus: {
               ...state.connectionStatus,
               [id]: {
@@ -206,13 +201,12 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
 
       testAllConnections: async (): Promise<Record<string, boolean>> => {
         const { providers } = get();
-        const results: Record<string, boolean> = {};
-
-        for (const provider of providers) {
-          results[provider.id] = await get().testProviderConnection(provider.id);
-        }
-
-        return results;
+        const testPromises = providers.map(async (provider) => {
+          const isConnected = await get().testProviderConnection(provider.id);
+          return [provider.id, isConnected] as [string, boolean];
+        });
+        const resultsArray = await Promise.all(testPromises);
+        return Object.fromEntries(resultsArray);
       },
 
       // ============================================
@@ -220,10 +214,7 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
       // ============================================
 
       saveApiKey: async (id: string, apiKey: string): Promise<void> => {
-        await SecureStore.setItemAsync(
-          `${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`,
-          apiKey
-        );
+        await SecureStore.setItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`, apiKey);
 
         // Update provider state
         set((state) => ({
@@ -234,15 +225,11 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
       },
 
       getApiKey: async (id: string): Promise<string | null> => {
-        return SecureStore.getItemAsync(
-          `${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`
-        );
+        return SecureStore.getItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`);
       },
 
       removeApiKey: async (id: string): Promise<void> => {
-        await SecureStore.deleteItemAsync(
-          `${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`
-        );
+        await SecureStore.deleteItemAsync(`${JULES_SECURE_KEYS.API_KEY_PREFIX}${id}`);
 
         // Update provider state
         set((state) => ({
@@ -271,13 +258,13 @@ export const useJulesSettingsStore = create<JulesSettingsState>()(
       getProviderStatus: (id: string): JulesProviderStatus => {
         const { providers, connectionStatus } = get();
         const provider = providers.find((p) => p.id === id);
-        
+
         if (!provider) {
           throw new Error(`Provider with id ${id} not found`);
         }
 
         const storedStatus = connectionStatus[id];
-        
+
         return {
           providerId: id,
           isReady: provider.isConnected && provider.isConfigured,
