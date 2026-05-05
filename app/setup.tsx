@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 
-import { pingServer } from '../src/api/ollamaClient';
+import { pingServer, fetchModels as apiFetchModels } from '../src/api/ollamaClient';
 import { useModelStore } from '../src/store/useModelStore';
 import { useServerStore, buildServerUrl, parseLegacyUrl } from '../src/store/useServerStore';
 
@@ -71,7 +71,6 @@ export default function SetupScreen() {
 
       // Try to fetch models
       try {
-        const { fetchModels: apiFetchModels } = require('../src/api/ollamaClient');
         const list = await apiFetchModels(serverUrl, key);
         setModelCount(list.models.length);
         setStatus('success');
@@ -85,7 +84,7 @@ export default function SetupScreen() {
           duration: 250,
           useNativeDriver: true,
         }).start();
-      } catch {
+      } catch (_err) {
         setStatus('success');
         setModelCount(0);
       }

@@ -1,8 +1,8 @@
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import * as Haptics from 'expo-haptics';
 import {
+import { StatusBar } from 'expo-status-bar';
+import { useLocalSearchParams, router } from 'expo-router';
   View,
   FlatList,
   Text,
@@ -51,15 +51,11 @@ export default function ChatScreen() {
   const [systemPromptText, setSystemPromptText] = useState('');
   const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
+  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
-  const conversationRef = useRef<string | null>(null);
-  const streamingContentRef = useRef('');
 
-  useEffect(() => {
-    streamingContentRef.current = streamingContent;
-  }, [streamingContent]);
-
+  // Initialize chat
   useEffect(() => {
     if (id === 'new') {
       const model = paramModel || selectedModel || 'gpt-oss:120b';
@@ -68,53 +64,31 @@ export default function ChatScreen() {
         router.replace('/chat/' + conv.id);
       });
     } else if (id) {
-      conversationRef.current = id;
       setActiveConversation(id);
-      loadMessages(id).then(() => {
-        const conv = conversations.find((c) => c.id === id);
-        if (conv) {
-          selectModel(conv.model);
-          if (conv.systemPrompt) {
-            setSystemPromptText(conv.systemPrompt);
-            setShowSystemPrompt(true);
-          }
-        }
-      });
+      loadMessages(id);
     }
-  }, [
-    id,
-    conversations,
-    createConversation,
-    loadMessages,
-    paramModel,
-    selectModel,
-    selectedModel,
-    setActiveConversation,
-  ]);
+  }, [id, paramModel, setActiveConversation, loadMessages, selectModel]);
 
+  // Sync messages from store to local
   useEffect(() => {
-    setLocalMessages(messages);
-  }, [messages]);
-
-  useEffect(() => {
-    if (localMessages.length > 0 || streamingContent) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    if (id !== 'new') {
+      setLocalMessages(messages);
     }
-  }, [localMessages.length, streamingContent]);
+  }, [messages, id]);
 
-  const handleSend = useCallback(async () => {
-    const text = inputText.trim();
-    if (!text || !conversationRef.current || !selectedModel || streaming) return;
+  const handleSend = async () => {
+    if (!inputText.trim() || streaming) return;
 
+    const userText = inputText.trim();
     setInputText('');
 
-    const convId = conversationRef.current;
+    let currentId = id === 'new' ? '' : id;
 
     // Add user message
-    const userMsg = await addMessage(convId, 'user', text);
-    setLocalMessages((prev) => [...prev, userMsg]);
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const userMsg = await addMessage(currentId, 'user', userText);
+    if (id === 'new') {
+      setLocalMessages([userMsg]);
+    }
 
     // Build messages array for API
     const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
@@ -126,20 +100,22 @@ export default function ChatScreen() {
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
     apiMessages.push({ role: 'user', content: text });
 
-    setStreamingContent('');
+    // Scroll to bottom
+    setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
 
+    // Call API
     await sendMessage(
-      selectedModel,
-      apiMessages,
-      (fullContent) => {
-        setStreamingContent(fullContent);
+      selectedModel || 'llama3',
+      history,
+      (content) => {
+        setStreamingContent(content);
+        flatListRef.current?.scrollToEnd();
       },
       async () => {
-        const finalContent = streamingContentRef.current;
-        setStreamingContent('');
-        if (finalContent) {
-          const assistantMsg = await addMessage(convId, 'assistant', finalContent);
-          setLocalMessages((prev) => [...prev, assistantMsg]);
+        // Done streaming, save assistant message
+        if (streamingContent) {
+          await addMessage(currentId, 'assistant', streamingContent);
+          setStreamingContent('');
         }
       }
     );

@@ -15,12 +15,10 @@ export async function exportConversationAsMarkdown(
   markdown += "**Model:** " + model + "\n\n";
   markdown += "---\n\n";
 
-  // Add system prompt if exists
   if (conversation.systemPrompt) {
     markdown += "**System Prompt:**\n\n" + conversation.systemPrompt + "\n\n---\n\n";
   }
 
-  // Add messages
   for (const msg of messages) {
     if (msg.role === 'system') continue;
 
@@ -43,7 +41,7 @@ export async function exportConversationAsMarkdown(
     encoding: (FileSystem as any).EncodingType?.UTF8 || 'utf8',
   });
 
-  await Sharing.shareAsync(fileUri, {
+  await Sharing.shareAsync(targetUri, {
     mimeType: 'text/markdown',
     dialogTitle: 'Export Conversation',
     UTI: 'org.openoffice.markdown-text',

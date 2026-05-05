@@ -1,6 +1,6 @@
 /**
  * Unified Provider Types
- * Type definitions for all AI providers (Jules, Ollama Cloud, Local Ollama)
+ * Type definitions for all AI providers (Jules, Ollama Cloud, Local Ollama, ZeroClaw)
  */
 
 import { JulesSource } from './types';
@@ -9,7 +9,7 @@ import { JulesSource } from './types';
 // Provider Type Identifiers
 // ============================================
 
-export type ProviderType = 'jules' | 'ollama-cloud' | 'ollama-local';
+export type ProviderType = 'jules' | 'ollama-cloud' | 'ollama-local' | 'zeroclaw';
 
 // ============================================
 // Base Provider Configuration
@@ -50,6 +50,16 @@ export interface OllamaLocalProviderConfig extends BaseProviderConfig {
 }
 
 /**
+ * ZeroClaw provider configuration
+ */
+export interface ZeroClawProviderConfig extends BaseProviderConfig {
+  type: 'zeroclaw';
+  url: string; // e.g., 'http://localhost:8080'
+  apiKey?: string;
+  defaultModel?: string;
+}
+
+/**
  * Jules provider configuration (imported from julesTypes)
  * Kept separate for Jules-specific fields
  */
@@ -63,9 +73,9 @@ export interface JulesProviderConfig extends BaseProviderConfig {
 /**
  * Union type for all provider configurations
  */
-export type ProviderConfig = 
-  | OllamaCloudProviderConfig 
-  | OllamaLocalProviderConfig 
+export type ProviderConfig =
+  | OllamaCloudProviderConfig
+  | OllamaLocalProviderConfig
   | JulesProviderConfig;
 
 // ============================================
@@ -94,7 +104,7 @@ export interface ProviderStatus {
 export interface ProviderFactoryConfig {
   type: ProviderType;
   name?: string;
-  url?: string; // For Ollama providers
+  url?: string; // For Ollama/ZeroClaw providers
   apiKey?: string;
   defaultModel?: string;
   defaultSourceId?: string; // For Jules
@@ -129,6 +139,13 @@ export interface OllamaLocalProviderInstance extends BaseProviderInstance<Ollama
 }
 
 /**
+ * ZeroClaw provider instance
+ */
+export interface ZeroClawProviderInstance extends BaseProviderInstance<ZeroClawProviderConfig> {
+  chat: (messages: any[]) => Promise<any>;
+}
+
+/**
  * Jules provider instance
  */
 export interface JulesProviderInstance extends BaseProviderInstance<JulesProviderConfig> {
@@ -144,9 +161,9 @@ export interface JulesProviderInstance extends BaseProviderInstance<JulesProvide
 /**
  * Union type for all provider instances
  */
-export type AnyProviderInstance = 
-  | OllamaCloudProviderInstance 
-  | OllamaLocalProviderInstance 
+export type AnyProviderInstance =
+  | OllamaCloudProviderInstance
+  | OllamaLocalProviderInstance
   | JulesProviderInstance;
 
 // ============================================
@@ -177,7 +194,10 @@ export const PROVIDER_SECURE_KEYS = {
 /**
  * Default Ollama Cloud configuration
  */
-export const DEFAULT_OLLAMA_CLOUD_PROVIDER: Omit<OllamaCloudProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_OLLAMA_CLOUD_PROVIDER: Omit<
+  OllamaCloudProviderConfig,
+  'id' | 'createdAt' | 'updatedAt'
+> = {
   name: 'Ollama Cloud',
   type: 'ollama-cloud',
   url: 'https://ollama.com',
@@ -188,10 +208,24 @@ export const DEFAULT_OLLAMA_CLOUD_PROVIDER: Omit<OllamaCloudProviderConfig, 'id'
 /**
  * Default Local Ollama configuration
  */
-export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<OllamaLocalProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<
+  OllamaLocalProviderConfig,
+  'id' | 'createdAt' | 'updatedAt'
+> = {
   name: 'Local Ollama',
   type: 'ollama-local',
   url: 'http://localhost:11434',
+  isConfigured: false,
+  isConnected: false,
+};
+
+/**
+ * Default ZeroClaw configuration
+ */
+export const DEFAULT_ZEROCLAW_PROVIDER: Omit<ZeroClawProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+  name: 'ZeroClaw',
+  type: 'zeroclaw',
+  url: 'http://localhost:8080',
   isConfigured: false,
   isConnected: false,
 };
@@ -225,6 +259,13 @@ export function isOllamaLocalProvider(config: ProviderConfig): config is OllamaL
 }
 
 /**
+ * Check if a provider config is ZeroClaw
+ */
+export function isZeroClawProvider(config: ProviderConfig): config is ZeroClawProviderConfig {
+  return config.type === 'zeroclaw';
+}
+
+/**
  * Check if a provider config is Jules
  */
 export function isJulesProvider(config: ProviderConfig): config is JulesProviderConfig {
@@ -234,15 +275,26 @@ export function isJulesProvider(config: ProviderConfig): config is JulesProvider
 /**
  * Check if a provider instance is Ollama Cloud
  */
-export function isOllamaCloudInstance(instance: AnyProviderInstance): instance is OllamaCloudProviderInstance {
+export function isOllamaCloudInstance(
+  instance: AnyProviderInstance
+): instance is OllamaCloudProviderInstance {
   return instance.config.type === 'ollama-cloud';
 }
 
 /**
  * Check if a provider instance is Local Ollama
  */
-export function isOllamaLocalInstance(instance: AnyProviderInstance): instance is OllamaLocalProviderInstance {
+export function isOllamaLocalInstance(
+  instance: AnyProviderInstance
+): instance is OllamaLocalProviderInstance {
   return instance.config.type === 'ollama-local';
+}
+
+/**
+ * Check if a provider instance is ZeroClaw
+ */
+export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+  return instance.config.type === 'zeroclaw';
 }
 
 /**

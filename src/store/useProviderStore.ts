@@ -1,26 +1,7 @@
-/**
- * Unified Provider Store
- * Manages all AI provider configurations (Ollama Cloud, Local Ollama, Jules)
- * with secure API key storage and connection testing
- */
-
 import { MMKV } from 'react-native-mmkv';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-import {
-  ProviderConfig,
-  ProviderFactoryConfig,
-  ProviderStatus,
-  AnyProviderInstance,
-  PROVIDER_STORAGE_KEYS,
-  DEFAULT_OLLAMA_CLOUD_PROVIDER,
-  DEFAULT_OLLAMA_LOCAL_PROVIDER,
-  DEFAULT_JULES_PROVIDER,
-  isOllamaCloudProvider,
-  isOllamaLocalProvider,
-  isJulesProvider,
-} from '../api/providerTypes';
 import {
   ProviderFactory,
   saveProviderApiKey,
@@ -29,174 +10,66 @@ import {
   testProviderConnection as testProviderConn,
   testConnectionWithKey,
 } from '../api/providerFactory';
+import {
+  ProviderConfig,
+  ProviderFactoryConfig,
+  ProviderStatus,
+  AnyProviderInstance,
+  PROVIDER_STORAGE_KEYS,
+  DEFAULT_OLLAMA_CLOUD_PROVIDER,
+  DEFAULT_OLLAMA_LOCAL_PROVIDER,
+  isJulesProvider,
+} from '../api/providerTypes';
 
 const storage = new MMKV();
 
 interface ProviderStore {
-  // State
   providers: ProviderConfig[];
   activeProviderId: string | null;
   connectionStatus: Record<string, ProviderStatus>;
 
-  // ============================================
-  // Provider CRUD Operations
-  // ============================================
-
-  /**
-   * Add a new provider
-   */
-  addProvider: (factoryConfig: ProviderFactoryConfig) => Promise<ProviderConfig>;
-
-  /**
-   * Update an existing provider
-   */
+  addProvider: (config: ProviderFactoryConfig) => Promise<ProviderConfig>;
   updateProvider: (id: string, updates: Partial<ProviderConfig>) => Promise<void>;
-
-  /**
-   * Remove a provider
-   */
   removeProvider: (id: string) => Promise<void>;
-
-  /**
-   * Set the active provider
-   */
-  setActiveProvider: (id: string | null) => void;
-
-  // ============================================
-  // Connection Testing
-  // ============================================
-
-  /**
-   * Test connection for a specific provider
-   */
+  setActiveProvider: (id: string) => void;
   testProviderConnection: (id: string) => Promise<boolean>;
-
-  /**
-   * Test all provider connections
-   */
   testAllConnections: () => Promise<Record<string, boolean>>;
-
-  /**
-   * Test connection with explicit API key before saving
-   */
-  validateConnection: (
-    type: ProviderConfig['type'],
-    url: string,
-    apiKey: string
-  ) => Promise<boolean>;
-
-  // ============================================
-  // API Key Management (Secure Storage)
-  // ============================================
-
-  /**
-   * Save API key securely for a provider
-   */
+  validateConnection: (type: ProviderConfig['type'], url: string, apiKey: string) => Promise<boolean>;
   saveApiKey: (id: string, apiKey: string) => Promise<void>;
-
-  /**
-   * Get API key securely for a provider
-   */
   getApiKey: (id: string) => Promise<string | null>;
-
-  /**
-   * Remove API key for a provider
-   */
   removeApiKey: (id: string) => Promise<void>;
-
-  // ============================================
-  // Defaults Management
-  // ============================================
-
-  /**
-   * Set default model for a provider
-   */
   setDefaultModel: (providerId: string, model: string) => Promise<void>;
-
-  /**
-   * Set default source for Jules provider
-   */
   setDefaultSource: (providerId: string, sourceId: string) => Promise<void>;
-
-  // ============================================
-  // Status Helpers
-  // ============================================
-
-  /**
-   * Get provider status
-   */
   getProviderStatus: (id: string) => ProviderStatus | undefined;
-
-  /**
-   * Get all ready providers (configured + connected)
-   */
   getReadyProviders: () => ProviderConfig[];
-
-  /**
-   * Get all configured providers
-   */
   getConfiguredProviders: () => ProviderConfig[];
-
-  /**
-   * Get providers by type
-   */
   getProvidersByType: (type: ProviderConfig['type']) => ProviderConfig[];
-
-  /**
-   * Get active provider
-   */
   getActiveProvider: () => ProviderConfig | null;
-
-  /**
-   * Check if a provider is ready
-   */
   isProviderReady: (id: string) => boolean;
-
-  // ============================================
-  // Provider Factory
-  // ============================================
-
-  /**
-   * Create a provider instance
-   */
   createProviderInstance: (id: string) => AnyProviderInstance | null;
-
-  /**
-   * Create a provider instance from config
-   */
   createProviderFromConfig: (config: ProviderConfig) => AnyProviderInstance;
 }
 
 export const useProviderStore = create<ProviderStore>()(
   persist(
     (set, get) => ({
-      // Initial state
       providers: [],
       activeProviderId: null,
       connectionStatus: {},
 
-      // ============================================
-      // Provider CRUD Operations
-      // ============================================
+      addProvider: async (config: ProviderFactoryConfig): Promise<ProviderConfig> => {
+        const newConfig = ProviderFactory.createConfig(config);
 
-      addProvider: async (factoryConfig: ProviderFactoryConfig): Promise<ProviderConfig> => {
-        const newConfig = ProviderFactory.createConfig(factoryConfig);
-
-        // Save API key securely if provided
-        if (factoryConfig.apiKey) {
-          await saveProviderApiKey(newConfig.type, newConfig.id, factoryConfig.apiKey);
-          newConfig.isConfigured = true;
-        }
-
-        // If API key was provided, test the connection
-        if (factoryConfig.apiKey) {
+        if (config.apiKey) {
+          await saveProviderApiKey(newConfig.type, newConfig.id, config.apiKey);
           const isConnected = await testConnectionWithKey(
             newConfig.type,
-            factoryConfig.url || (
-              newConfig.type === 'ollama-cloud' ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url :
-              newConfig.type === 'ollama-local' ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url :
-              ''
-            ),
+            factoryConfig.url ||
+              (newConfig.type === 'ollama-cloud'
+                ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url
+                : newConfig.type === 'ollama-local'
+                  ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url
+                  : ''),
             factoryConfig.apiKey
           );
           newConfig.isConnected = isConnected;
@@ -238,52 +111,37 @@ export const useProviderStore = create<ProviderStore>()(
 
       removeProvider: async (id: string): Promise<void> => {
         const { providers, activeProviderId, connectionStatus } = get();
-
-        // Remove API key from secure storage
         const provider = providers.find((p) => p.id === id);
         if (provider) {
           await removeProviderApiKey(provider.type, id);
         }
 
-        // Remove connection status
         const newConnectionStatus = { ...connectionStatus };
         delete newConnectionStatus[id];
 
         // Find new active provider if current is being removed
         const newProviders = providers.filter((p) => p.id !== id);
-        const newActiveId = activeProviderId === id ? (newProviders[0]?.id ?? null) : activeProviderId;
+        const newActiveId =
+          activeProviderId === id ? (newProviders[0]?.id ?? null) : activeProviderId;
 
         set({
           providers: newProviders,
           activeProviderId: newActiveId,
           connectionStatus: newConnectionStatus,
-        });
+        }));
       },
 
-      setActiveProvider: (id: string | null): void => {
-        const { providers } = get();
-        if (id && !providers.some((p) => p.id === id)) {
-          throw new Error(`Provider with id ${id} not found`);
-        }
+      setActiveProvider: (id: string) => {
         set({ activeProviderId: id });
       },
-
-      // ============================================
-      // Connection Testing
-      // ============================================
 
       testProviderConnection: async (id: string): Promise<boolean> => {
         const { providers } = get();
         const provider = providers.find((p) => p.id === id);
-
-        if (!provider) {
-          throw new Error(`Provider with id ${id} not found`);
-        }
+        if (!provider) throw new Error(`Provider with id ${id} not found`);
 
         try {
           const isConnected = await testProviderConn(provider);
-
-          // Update provider state
           set((state) => ({
             providers: state.providers.map((p) =>
               p.id === id
@@ -292,7 +150,7 @@ export const useProviderStore = create<ProviderStore>()(
                     isConnected,
                     isConfigured: true,
                     lastConnectionTest: isConnected ? Date.now() : p.lastConnectionTest,
-                  }
+                  } as ProviderConfig
                 : p
             ),
             connectionStatus: {
@@ -307,15 +165,11 @@ export const useProviderStore = create<ProviderStore>()(
               },
             },
           }));
-
           return isConnected;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-
           set((state) => ({
-            providers: state.providers.map((p) =>
-              p.id === id ? { ...p, isConnected: false } : p
-            ),
+            providers: state.providers.map((p) => (p.id === id ? { ...p, isConnected: false } : p)),
             connectionStatus: {
               ...state.connectionStatus,
               [id]: {
@@ -328,49 +182,28 @@ export const useProviderStore = create<ProviderStore>()(
               },
             },
           }));
-
           return false;
         }
       },
 
       testAllConnections: async (): Promise<Record<string, boolean>> => {
         const { providers } = get();
-        const results: Record<string, boolean> = {};
-
-        for (const provider of providers) {
-          results[provider.id] = await get().testProviderConnection(provider.id);
-        }
-
-        return results;
+        const testPromises = providers.map(async (provider) => {
+          const isConnected = await get().testProviderConnection(provider.id);
+          return [provider.id, isConnected] as [string, boolean];
+        });
+        const resultsArray = await Promise.all(testPromises);
+        return Object.fromEntries(resultsArray);
       },
 
-      validateConnection: async (
-        type: ProviderConfig['type'],
-        url: string,
-        apiKey: string
-      ): Promise<boolean> => {
-        return testConnectionWithKey(type, url, apiKey);
-      },
+      validateConnection: async (type, url, apiKey) => testConnectionWithKey(type, url, apiKey),
 
-      // ============================================
-      // API Key Management (Secure Storage)
-      // ============================================
-
-      saveApiKey: async (id: string, apiKey: string): Promise<void> => {
-        const { providers } = get();
-        const provider = providers.find((p) => p.id === id);
-
-        if (!provider) {
-          throw new Error(`Provider with id ${id} not found`);
-        }
-
+      saveApiKey: async (id, apiKey) => {
+        const provider = get().providers.find((p) => p.id === id);
+        if (!provider) throw new Error(`Provider with id ${id} not found`);
         await saveProviderApiKey(provider.type, id, apiKey);
-
-        // Update provider state
         set((state) => ({
-          providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: true } : p
-          ),
+          providers: state.providers.map((p) => (p.id === id ? { ...p, isConfigured: true } : p)),
           connectionStatus: {
             ...state.connectionStatus,
             [id]: {
@@ -381,78 +214,37 @@ export const useProviderStore = create<ProviderStore>()(
         }));
       },
 
-      getApiKey: async (id: string): Promise<string | null> => {
-        const { providers } = get();
-        const provider = providers.find((p) => p.id === id);
-
-        if (!provider) {
-          throw new Error(`Provider with id ${id} not found`);
-        }
-
+      getApiKey: async (id) => {
+        const provider = get().providers.find((p) => p.id === id);
+        if (!provider) throw new Error(`Provider with id ${id} not found`);
         return getProviderApiKey(provider.type, id);
       },
 
-      removeApiKey: async (id: string): Promise<void> => {
-        const { providers } = get();
-        const provider = providers.find((p) => p.id === id);
-
-        if (!provider) {
-          throw new Error(`Provider with id ${id} not found`);
-        }
-
+      removeApiKey: async (id) => {
+        const provider = get().providers.find((p) => p.id === id);
+        if (!provider) throw new Error(`Provider with id ${id} not found`);
         await removeProviderApiKey(provider.type, id);
-
-        // Update provider state
         set((state) => ({
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: false, isConnected: false } : p
+            p.id === id ? { ...p, isConfigured: false, isConnected: false } as ProviderConfig : p
           ),
-          connectionStatus: {
-            ...state.connectionStatus,
-            [id]: {
-              ...state.connectionStatus[id],
-              isConfigured: false,
-              isConnected: false,
-            },
-          },
         }));
       },
 
-      // ============================================
-      // Defaults Management
-      // ============================================
-
-      setDefaultModel: async (providerId: string, model: string): Promise<void> => {
+      setDefaultModel: async (providerId, model) => {
         await get().updateProvider(providerId, { defaultModel: model });
       },
 
-      setDefaultSource: async (providerId: string, sourceId: string): Promise<void> => {
-        // Only Jules providers support defaultSourceId
-        const { providers } = get();
-        const provider = providers.find((p) => p.id === providerId);
-
-        if (provider && !isJulesProvider(provider)) {
-          console.warn(`Provider ${providerId} does not support defaultSourceId`);
-          return;
-        }
-
-        await get().updateProvider(providerId, { defaultSourceId: sourceId });
+      setDefaultSource: async (providerId, sourceId) => {
+        const provider = get().providers.find((p) => p.id === providerId);
+        if (provider && !isJulesProvider(provider)) return;
+        await get().updateProvider(providerId, { defaultSourceId: sourceId } as any);
       },
 
-      // ============================================
-      // Status Helpers
-      // ============================================
-
-      getProviderStatus: (id: string): ProviderStatus | undefined => {
-        const { providers, connectionStatus } = get();
-        const provider = providers.find((p) => p.id === id);
-
-        if (!provider) {
-          return undefined;
-        }
-
-        const storedStatus = connectionStatus[id];
-
+      getProviderStatus: (id) => {
+        const provider = get().providers.find((p) => p.id === id);
+        if (!provider) return undefined;
+        const storedStatus = get().connectionStatus[id];
         return {
           providerId: id,
           isReady: provider.isConnected && provider.isConfigured,
@@ -463,59 +255,26 @@ export const useProviderStore = create<ProviderStore>()(
         };
       },
 
-      getReadyProviders: (): ProviderConfig[] => {
-        const { providers } = get();
-        return providers.filter((p) => p.isConfigured && p.isConnected);
-      },
-
-      getConfiguredProviders: (): ProviderConfig[] => {
-        const { providers } = get();
-        return providers.filter((p) => p.isConfigured);
-      },
-
-      getProvidersByType: (type: ProviderConfig['type']): ProviderConfig[] => {
-        const { providers } = get();
-        return providers.filter((p) => p.type === type);
-      },
-
-      getActiveProvider: (): ProviderConfig | null => {
+      getReadyProviders: () => get().providers.filter((p) => p.isConfigured && p.isConnected),
+      getConfiguredProviders: () => get().providers.filter((p) => p.isConfigured),
+      getProvidersByType: (type) => get().providers.filter((p) => p.type === type),
+      getActiveProvider: () => {
         const { providers, activeProviderId } = get();
-        if (!activeProviderId) return null;
         return providers.find((p) => p.id === activeProviderId) || null;
       },
+      isProviderReady: (id) => get().getProviderStatus(id)?.isReady ?? false,
 
-      isProviderReady: (id: string): boolean => {
-        const status = get().getProviderStatus(id);
-        return status?.isReady ?? false;
+      createProviderInstance: (id) => {
+        const provider = get().providers.find((p) => p.id === id);
+        return provider ? ProviderFactory.create(provider) : null;
       },
-
-      // ============================================
-      // Provider Factory
-      // ============================================
-
-      createProviderInstance: (id: string): AnyProviderInstance | null => {
-        const { providers } = get();
-        const provider = providers.find((p) => p.id === id);
-
-        if (!provider) {
-          return null;
-        }
-
-        return ProviderFactory.create(provider);
-      },
-
-      createProviderFromConfig: (config: ProviderConfig): AnyProviderInstance => {
-        return ProviderFactory.create(config);
-      },
+      createProviderFromConfig: (config) => ProviderFactory.create(config),
     }),
     {
       name: PROVIDER_STORAGE_KEYS.PROVIDERS,
       storage: createJSONStorage(() => ({
-        getItem: (key) => {
-          const val = storage.getString(key);
-          return val ?? null;
-        },
-        setItem: (key, val) => storage.set(key, JSON.stringify(val)),
+        getItem: (key) => storage.getString(key) ?? null,
+        setItem: (key, val) => storage.set(key, val),
         removeItem: (key) => storage.delete(key),
       })),
       partialize: (state: ProviderStore) => ({
@@ -531,68 +290,7 @@ export const useProviderStore = create<ProviderStore>()(
   )
 );
 
-// ============================================
-// Helper Hooks
-// ============================================
-
-/**
- * Get the active provider
- */
 export const useActiveProvider = () => {
   const { getActiveProvider } = useProviderStore();
-  return useProviderStore((state) => getActiveProvider());
-};
-
-/**
- * Check if any provider is ready
- */
-export const useHasReadyProvider = () => {
-  const { getReadyProviders } = useProviderStore();
-  return useProviderStore((state) => getReadyProviders().length > 0);
-};
-
-/**
- * Get all ready providers
- */
-export const useReadyProviders = () => {
-  const { getReadyProviders } = useProviderStore();
-  return useProviderStore((state) => getReadyProviders());
-};
-
-/**
- * Get providers by type (e.g., 'ollama-cloud', 'jules')
- */
-export const useProvidersByType = (type: ProviderConfig['type']) => {
-  const { getProvidersByType } = useProviderStore();
-  return useProviderStore((state) => getProvidersByType(type));
-};
-
-/**
- * Check if a specific provider is ready
- */
-export const useProviderReady = (providerId: string) => {
-  const { isProviderReady } = useProviderStore();
-  return useProviderStore((state) => isProviderReady(providerId));
-};
-
-/**
- * Get connection status for a specific provider
- */
-export const useProviderStatus = (providerId: string) => {
-  const { getProviderStatus } = useProviderStore();
-  return useProviderStore((state) => getProviderStatus(providerId));
-};
-
-/**
- * Get all providers
- */
-export const useAllProviders = () => {
-  return useProviderStore((state) => state.providers);
-};
-
-/**
- * Get active provider ID
- */
-export const useActiveProviderId = () => {
-  return useProviderStore((state) => state.activeProviderId);
+  return useProviderStore(() => getActiveProvider());
 };

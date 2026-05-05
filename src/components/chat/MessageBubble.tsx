@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   bubbleWrap: { marginBottom: 8 },
   bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
   bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
-  bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%' },
+  bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%', marginBottom: 12 },
   bubbleWrapSelected: {
     borderWidth: 1.5,
     borderColor: '#30d158',
@@ -83,6 +83,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(48,209,88,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  bubbleText: {
+    fontSize: 17,
+  },
+  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
+  bubbleSystemText: {
+    color: 'rgba(48,209,88,0.7)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
   systemText: { color: 'rgba(48,209,88,0.7)', fontSize: 13, fontStyle: 'italic' },
