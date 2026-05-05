@@ -1,8 +1,8 @@
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import * as Haptics from 'expo-haptics';
 import {
+import { StatusBar } from 'expo-status-bar';
+import { useLocalSearchParams, router } from 'expo-router';
   View,
   FlatList,
   Text,
