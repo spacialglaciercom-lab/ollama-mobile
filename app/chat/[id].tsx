@@ -37,7 +37,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { selectedModel, selectModel, fetchModels } = useModelStore();
+  const { selectedModel, selectModel } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -49,6 +49,7 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
+  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
@@ -57,9 +58,11 @@ export default function ChatScreen() {
   // Initialize chat
   useEffect(() => {
     if (id === 'new') {
-      setActiveConversation(null);
-      setLocalMessages([]);
-      if (paramModel) selectModel(paramModel);
+      const model = paramModel || selectedModel || 'gpt-oss:120b';
+      createConversation('New Chat', model).then((conv) => {
+        conversationRef.current = conv.id;
+        router.replace('/chat/' + conv.id);
+      });
     } else if (id) {
       setActiveConversation(id);
       loadMessages(id);
@@ -78,19 +81,8 @@ export default function ChatScreen() {
 
     const userText = inputText.trim();
     setInputText('');
-    setStreamingContent('');
-    setTokenStats(null);
 
     let currentId = id === 'new' ? '' : id;
-
-    // Create conversation if it's new
-    if (id === 'new' && !currentId) {
-      const title = userText.length > 30 ? userText.substring(0, 30) + '...' : userText;
-      const conv = await createConversation(title, selectedModel || 'llama3', systemPromptText);
-      currentId = conv.id;
-      // Change URL to the new ID without triggering a re-render if possible
-      router.setParams({ id: currentId });
-    }
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
@@ -98,16 +90,15 @@ export default function ChatScreen() {
       setLocalMessages([userMsg]);
     }
 
-    // Prepare message history for API
-    const history = localMessages.map((m) => ({ role: m.role, content: m.content }));
-    history.push({ role: 'user', content: userText });
-    if (systemPromptText && !history.find((m) => m.role === 'system')) {
-      history.unshift({ role: 'system', content: systemPromptText });
+    // Build messages array for API
+    const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
+    if (showSystemPrompt && systemPromptText.trim()) {
+      apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
     localMessages
-      .filter((m) => m.role !== 'system')
-      .forEach((m) => apiMessages.push({ role: m.role, content: m.content }));
-    apiMessages.push({ role: userMsg.role, content: text });
+      .filter((msg) => msg.role !== 'system')
+      .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
+    apiMessages.push({ role: 'user', content: text });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
@@ -128,28 +119,48 @@ export default function ChatScreen() {
         }
       }
     );
-  };
 
-  const allMessages = [...localMessages];
-  if (streamingContent) {
-    allMessages.push({
-      id: 'streaming',
-      conversationId: 'current',
-      role: 'assistant',
-      content: streamingContent,
-      createdAt: Date.now(),
-    });
-  }
+    // Auto-title from first user message
+    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    if (conv && conv.title === 'New Chat') {
+      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
+      updateConversationTitle(convId, title);
+    }
+  }, [
+    inputText,
+    selectedModel,
+    localMessages,
+    streaming,
+    addMessage,
+    sendMessage,
+    systemPromptText,
+    showSystemPrompt,
+    updateConversationTitle,
+  ]);
+
+  const allMessages = [
+    ...localMessages,
+    ...(streamingContent
+      ? [
+          {
+            id: 'streaming',
+            conversationId: conversationRef.current ?? '',
+            role: 'assistant' as const,
+            content: streamingContent,
+            createdAt: Date.now(),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
-      keyboardVerticalOffset={0}
     >
       <StatusBar style="light" />
 
-      {/* NavBar */}
+      {/* Header */}
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.navBtn} onPress={() => router.back()}>
           <Text style={styles.navBtnText}>Back</Text>
@@ -163,11 +174,11 @@ export default function ChatScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navBtn} onPress={() => setShowMenu(true)}>
-          <Text style={styles.navBtnIcon}>···</Text>
+          <Text style={styles.navBtnIcon}>⋯</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Menu Popover */}
+      {/* Popover Menu */}
       {showMenu && (
         <Pressable style={styles.menuScrim} onPress={() => setShowMenu(false)}>
           <View style={styles.menuPopover}>
@@ -212,15 +223,19 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={allMessages}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MessageBubble
-            role={item.role}
-            content={item.content}
-            selected={selectedMessage?.id === item.id}
-            onLongPress={() => item.id !== 'streaming' && setSelectedMessage(item)}
-            isStreaming={item.id === 'streaming' && streaming}
-          />
-        )}
+        renderItem={({ item }) => {
+          if (item.id === 'streaming') {
+            return <StreamingBubble content={item.content} />;
+          }
+          return (
+            <MessageBubble
+              role={item.role}
+              content={item.content}
+              selected={selectedMessage?.id === item.id}
+              onLongPress={() => setSelectedMessage(item)}
+            />
+          );
+        }}
         contentContainerStyle={
           allMessages.length === 0 ? styles.messagesEmpty : styles.messagesList
         }
@@ -484,6 +499,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
   },

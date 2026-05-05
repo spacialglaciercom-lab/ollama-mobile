@@ -164,9 +164,8 @@ describe('JulesDebugger', () => {
       });
 
       // Don't select a source
-      expect(screen.getByText('Create Session').parent?.props.accessibilityState?.disabled).toBe(
-        true
-      );
+      const button = screen.getByText('Create Session');
+      expect(button.props.accessibilityState?.disabled).toBeTruthy();
     });
 
     it('should disable Create Session button when no prompt entered', async () => {
@@ -180,9 +179,8 @@ describe('JulesDebugger', () => {
       });
 
       // Don't enter a prompt
-      expect(screen.getByText('Create Session').parent?.props.accessibilityState?.disabled).toBe(
-        true
-      );
+      const button = screen.getByText('Create Session');
+      expect(button.props.accessibilityState?.disabled).toBeTruthy();
     });
 
     it('should call createSession with correct parameters', async () => {
@@ -269,7 +267,7 @@ describe('JulesDebugger', () => {
 
       const branchInput = screen.getByPlaceholderText('main');
       fireEvent.changeText(branchInput, 'feature-branch');
-
+      
       expect(branchInput.props.value).toBe('feature-branch');
     });
 
@@ -278,7 +276,7 @@ describe('JulesDebugger', () => {
 
       const titleInput = screen.getByPlaceholderText('My Jules Session');
       fireEvent.changeText(titleInput, 'Custom Title');
-
+      
       expect(titleInput.props.value).toBe('Custom Title');
     });
 

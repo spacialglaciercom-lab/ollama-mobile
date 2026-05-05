@@ -100,11 +100,13 @@ export const useProviderStore = create<ProviderStore>()(
           updatedAt: Date.now(),
         };
 
-        set((state) => {
-          const newProviders = [...state.providers];
-          newProviders[existingIndex] = updatedProvider as ProviderConfig;
-          return { providers: newProviders };
-        });
+        set((state) => ({
+          providers: [
+            ...state.providers.slice(0, existingIndex),
+            updatedProvider as ProviderConfig,
+            ...state.providers.slice(existingIndex + 1),
+          ],
+        }));
       },
 
       removeProvider: async (id: string): Promise<void> => {
@@ -275,11 +277,15 @@ export const useProviderStore = create<ProviderStore>()(
         setItem: (key, val) => storage.set(key, val),
         removeItem: (key) => storage.delete(key),
       })),
-      partialize: (state) => ({
-        providers: state.providers.map((p) => ({ ...p, apiKey: undefined })),
+      partialize: (state: ProviderStore) => ({
+        // Only persist non-sensitive data
+        providers: state.providers.map((p) => {
+          const { apiKey: _, ...rest } = p as any;
+          return { ...rest, apiKey: '' };
+        }) as ProviderConfig[],
         activeProviderId: state.activeProviderId,
         connectionStatus: state.connectionStatus,
-      }),
+      } as any),
     }
   )
 );

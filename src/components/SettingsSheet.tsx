@@ -34,11 +34,9 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setAutoDeleteDays,
     cleanupOldConversations,
   } = useChatStore();
-  const [autoDeleteInput, setAutoDeleteInput] = [
-    useState(String(autoDeleteDays))[0],
-    useState(String(autoDeleteDays))[1],
-  ];
+
   const [showForm, setShowForm] = useState(false);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(autoDeleteDays.toString());
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');

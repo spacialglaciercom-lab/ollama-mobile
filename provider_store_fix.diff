@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+        set((state) => ({
+          providers: [
+            ...state.providers.slice(0, existingIndex),
+            updatedProvider,
+            ...state.providers.slice(existingIndex + 1),
+          ],
+        }));
+=======
+        set((state) => ({
+          providers: [
+            ...state.providers.slice(0, existingIndex),
+            updatedProvider as ProviderConfig,
+            ...state.providers.slice(existingIndex + 1),
+          ],
+        }));
+>>>>>>> REPLACE
