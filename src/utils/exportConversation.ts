@@ -8,29 +8,7 @@ export async function exportConversationAsMarkdown(
   messages: StoredMessage[]
 ): Promise<void> {
   const date = new Date(conversation.createdAt).toISOString().split('T')[0];
-  const model = conversation.model;
-
-  let markdown = "# " + conversation.title + "\n\n";
-  markdown += "**Date:** " + date + "  \n";
-  markdown += "**Model:** " + model + "\n\n";
-  markdown += "---\n\n";
-
-  if (conversation.systemPrompt) {
-    markdown += "**System Prompt:**\n\n" + conversation.systemPrompt + "\n\n---\n\n";
-  }
-
-  for (const msg of messages) {
-    if (msg.role === 'system') continue;
-
-    const roleLabel = msg.role === 'user' ? 'User' : 'Assistant';
-    const time = new Date(msg.createdAt).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    markdown += "### " + roleLabel + " — " + time + "\n\n";
-    markdown += msg.content + "\n\n";
-  }
+  const markdown = conversationToMarkdown(conversation, messages);
 
   // Write to file and share
   const filename = conversation.title.replace(/[^a-z0-9]/gi, '_') + "_" + date + ".md";
@@ -41,7 +19,7 @@ export async function exportConversationAsMarkdown(
     encoding: (FileSystem as any).EncodingType?.UTF8 || 'utf8',
   });
 
-  await Sharing.shareAsync(targetUri, {
+  await Sharing.shareAsync(fileUri, {
     mimeType: 'text/markdown',
     dialogTitle: 'Export Conversation',
     UTI: 'org.openoffice.markdown-text',
@@ -53,14 +31,15 @@ export function conversationToMarkdown(
   messages: StoredMessage[]
 ): string {
   const date = new Date(conversation.createdAt).toISOString().split('T')[0];
+  const blocks: string[] = [];
 
-  let markdown = "# " + conversation.title + "\n\n";
-  markdown += "**Date:** " + date + "  \n";
-  markdown += "**Model:** " + conversation.model + "\n\n";
-  markdown += "---\n\n";
+  blocks.push("# " + conversation.title + "\n\n");
+  blocks.push("**Date:** " + date + "  \n");
+  blocks.push("**Model:** " + conversation.model + "\n\n");
+  blocks.push("---\n\n");
 
   if (conversation.systemPrompt) {
-    markdown += "**System Prompt:**\n\n" + conversation.systemPrompt + "\n\n---\n\n";
+    blocks.push("**System Prompt:**\n\n" + conversation.systemPrompt + "\n\n---\n\n");
   }
 
   for (const msg of messages) {
@@ -72,9 +51,9 @@ export function conversationToMarkdown(
       minute: '2-digit',
     });
 
-    markdown += "### " + roleLabel + " — " + time + "\n\n";
-    markdown += msg.content + "\n\n";
+    blocks.push("### " + roleLabel + " — " + time + "\n\n");
+    blocks.push(msg.content + "\n\n");
   }
 
-  return markdown;
+  return blocks.join('');
 }
