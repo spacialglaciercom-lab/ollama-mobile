@@ -3,6 +3,8 @@
 // routing or geographic pipelines, this scaffolding isolates potential abstract logic
 // that could be exported and verified via theorem provers in a separate pipeline.
 
+import { useDiagnosticsStore } from '../store/useDiagnosticsStore';
+
 export interface FormalVerificationContract<T, R> {
   input: T;
   expectedOutput: R;
@@ -18,7 +20,13 @@ export const createVerificationHarness = <T, R>(
     run: () => {
       const output = algorithm(contract.input);
       const isValid = contract.invariant(contract.input, output);
-      console.log(`[Verification] ${name}: ${isValid ? 'PASSED' : 'FAILED'}`);
+
+      useDiagnosticsStore.getState().info(
+        'Verification',
+        `${name}: ${isValid ? 'PASSED' : 'FAILED'}`,
+        { name, isValid }
+      );
+
       return isValid;
     },
   };
