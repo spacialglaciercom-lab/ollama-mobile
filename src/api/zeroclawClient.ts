@@ -53,13 +53,13 @@ export async function* streamZeroClawChat(
 ): AsyncGenerator<ChatResponse, void, unknown> {
   const wsUrl = baseUrl.replace(/\/+$/, '').replace(/^http/, 'ws') + '/acp';
 
-  // ACP sessions are isolated, so we either send the last message
-  // or format the whole history into the prompt.
-  // For a basic integration, formatting history might be better if the agent
-  // is expected to be stateless across ACP calls.
-  // But usually ACP is for interactive use.
-  // We'll send the last message as the prompt for now.
-  const lastMessage = messages[messages.length - 1].content;
+  // Format conversation history into the prompt for ZeroClaw.
+  const formattedPrompt = messages
+    .map((msg) => {
+      const role = msg.role === 'user' ? 'User' : msg.role === 'assistant' ? 'Assistant' : 'System';
+      return `${role}: ${msg.content}`;
+    })
+    .join('\n\n');
 
   const queue: ChatResponse[] = [];
   let resolveNext: ((value: { value: ChatResponse | undefined; done: boolean }) => void) | null =
@@ -120,7 +120,7 @@ export async function* streamZeroClawChat(
             method: 'session/prompt',
             params: {
               sessionId: data.result.sessionId,
-              prompt: lastMessage,
+              prompt: formattedPrompt,
             },
           })
         );

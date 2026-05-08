@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import * as Haptics from 'expo-haptics';
-import {
+import React, { useState, useRef, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
+import {
   View,
   FlatList,
   Text,
@@ -29,7 +28,6 @@ import { useServerStore } from '../../src/store/useServerStore';
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
-    conversations,
     messages,
     createConversation,
     addMessage,
@@ -49,25 +47,26 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const conversationIdRef = useRef<string | null>(null);
 
   // Initialize chat
   useEffect(() => {
     if (id === 'new') {
-      const model = paramModel || selectedModel || 'gpt-oss:120b';
+      const model = paramModel || selectedModel || 'llama3';
       createConversation('New Chat', model).then((conv) => {
-        conversationRef.current = conv.id;
+        conversationIdRef.current = conv.id;
         router.replace('/chat/' + conv.id);
       });
     } else if (id) {
+      conversationIdRef.current = id;
       setActiveConversation(id);
       loadMessages(id);
     }
-  }, [id, paramModel, setActiveConversation, loadMessages, selectModel]);
+  }, [id, paramModel, setActiveConversation, loadMessages, selectModel, selectedModel, createConversation]);
 
   // Sync messages from store to local
   useEffect(() => {
@@ -82,23 +81,23 @@ export default function ChatScreen() {
     const userText = inputText.trim();
     setInputText('');
 
-    let currentId = id === 'new' ? '' : id;
+    const currentId = conversationIdRef.current;
+    if (!currentId) return;
 
     // Add user message
-    const userMsg = await addMessage(currentId, 'user', userText);
-    if (id === 'new') {
-      setLocalMessages([userMsg]);
-    }
+    await addMessage(currentId, 'user', userText);
 
     // Build messages array for API
     const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
-    localMessages
-      .filter((msg) => msg.role !== 'system')
-      .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: text });
+
+    // Get fresh messages from store or use localMessages
+    const currentMessages = useChatStore.getState().messages;
+    currentMessages.forEach((msg) => {
+      apiMessages.push({ role: msg.role, content: msg.content });
+    });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
@@ -106,7 +105,7 @@ export default function ChatScreen() {
     // Call API
     await sendMessage(
       selectedModel || 'llama3',
-      history,
+      apiMessages,
       (content) => {
         setStreamingContent(content);
         flatListRef.current?.scrollToEnd();
@@ -121,22 +120,12 @@ export default function ChatScreen() {
     );
 
     // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
+      const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+      updateConversationTitle(currentId, title);
     }
-  }, [
-    inputText,
-    selectedModel,
-    localMessages,
-    streaming,
-    addMessage,
-    sendMessage,
-    systemPromptText,
-    showSystemPrompt,
-    updateConversationTitle,
-  ]);
+  };
 
   const allMessages = [
     ...localMessages,
@@ -144,7 +133,7 @@ export default function ChatScreen() {
       ? [
           {
             id: 'streaming',
-            conversationId: conversationRef.current ?? '',
+            conversationId: conversationIdRef.current ?? '',
             role: 'assistant' as const,
             content: streamingContent,
             createdAt: Date.now(),
@@ -153,10 +142,28 @@ export default function ChatScreen() {
       : []),
   ];
 
+  const renderItem = ({ item }: { item: StoredMessage | any }) => {
+    if (item.id === 'streaming') {
+      return (
+        <View style={[styles.bubbleWrap, styles.bubbleWrapAssistant]}>
+          <StreamingBubble content={item.content} />
+        </View>
+      );
+    }
+    return (
+      <MessageBubble
+        role={item.role}
+        content={item.content}
+        onLongPress={() => setSelectedMessage(item)}
+      />
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <StatusBar style="light" />
 
@@ -301,9 +308,6 @@ export default function ChatScreen() {
               {showSystemPrompt ? '✕ System' : '+ System prompt'}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.chipFaint}>
-            <Text style={styles.chipFaintText}>+ Add context</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -383,7 +387,6 @@ const styles = StyleSheet.create({
   },
   menuRow: { paddingHorizontal: 16, paddingVertical: 11 },
   menuLabel: { color: '#fff', fontSize: 17 },
-  menuLabelAccent: { color: '#30d158', fontSize: 17 },
   menuLabelDanger: { color: '#ff453a', fontSize: 17 },
   menuSep: {
     height: StyleSheet.hairlineWidth,
@@ -407,37 +410,7 @@ const styles = StyleSheet.create({
   bubbleWrap: { marginBottom: 8 },
   bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
   bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
-  bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%' },
-  bubbleWrapSelected: {
-    borderWidth: 1.5,
-    borderColor: '#30d158',
-    borderRadius: 18,
-  },
   bubble: { paddingHorizontal: 14, paddingVertical: 10 },
-  bubbleUser: {
-    backgroundColor: '#1a3a5c',
-    borderRadius: 18,
-    borderBottomRightRadius: 4,
-  },
-  bubbleAssistant: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleSystem: {
-    backgroundColor: 'rgba(48,209,88,0.08)',
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(48,209,88,0.2)',
-  },
-  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  bubbleSystemText: {
-    color: 'rgba(48,209,88,0.7)',
-    fontSize: 13,
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
-  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
   tokenBar: {
     paddingHorizontal: 16,
     paddingVertical: 4,
