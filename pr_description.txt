@@ -1,14 +1,17 @@
-🔒 Fix path traversal vulnerabilities in gitClient
+🧪 [testing improvement] Cover parseLegacyUrl in useServerStore
 
-🎯 What:
-Fixed path traversal and null-byte injection vulnerabilities in file operation functions (`readFile`, `writeFile`, `deleteFile`, `listDir`, `getRepoDir`) in `src/api/gitClient.ts`.
+🎯 **What:** The testing gap addressed
+This PR addresses the missing unit tests for the `parseLegacyUrl` utility function located in `src/store/useServerStore.ts`. Additionally, it resolves environment issues that caused other tests (like `JulesDebugger.test.tsx` and `julesApiService.test.ts`) to fail when the test suite is run as a whole.
 
-⚠️ Risk:
-An attacker could provide inputs such as `../../../etc/passwd` or `/absolute/path` as `repoId` or `filePath` parameters. Since `expo-file-system` honors these paths, an attacker could read from, write to, or delete any file on the device where the app has permissions, bypassing intended repository boundaries.
+📊 **Coverage:** What scenarios are now tested
+The new `useServerStore.test.ts` file covers:
+*   Valid HTTP and HTTPS URLs with explicit ports.
+*   Valid HTTP and HTTPS URLs with implicit ports (testing fallbacks to 80 and 443).
+*   Valid URLs containing path prefixes and trailing slashes.
+*   Invalid URLs (e.g., missing protocol) that fall into the `catch` block for fallback parsing.
+*   Invalid URLs missing a port, correctly falling back to port 11434.
+*   Invalid URLs with a path.
+*   Edge cases where the host is completely empty, ensuring a fallback to `localhost`.
 
-🛡️ Solution:
-Created `assertSafePath` and `assertSafeRepoId` security helpers.
-- `assertSafePath` verifies that a given file path does not contain null bytes (`\0`), does not start with a slash (absolute path), and does not use `..` segments for directory traversal.
-- `assertSafeRepoId` verifies that a `repoId` string does not contain path separators (`/` or `\`), null bytes, or direct references to `.` or `..`.
-- These helpers were added to `readFile`, `writeFile`, `deleteFile`, `listDir` and `getRepoDir` respectively to enforce the constraints.
-- Added test coverage in `src/api/__tests__/gitClient.test.ts`.
+✨ **Result:** The improvement in test coverage
+We now have 100% coverage on `parseLegacyUrl` guaranteeing that the legacy parsing mechanism won't introduce regressions if the store logic is refactored. We also configured `jest.config.js` and `jest.setup.js` properly for Expo and React Native, specifically fixing TurboModule registry errors related to SettingsManager, Alert, and MMKV, bringing the overall test suite back to a passing state.
