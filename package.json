@@ -14,6 +14,7 @@
   "dependencies": {
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
+    "babel-preset-expo": "^55.0.21",
     "buffer": "^6.0.3",
     "expo": "~52.0.0",
     "expo-blur": "~14.0.0",
