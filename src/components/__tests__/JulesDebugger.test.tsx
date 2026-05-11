@@ -97,7 +97,11 @@ describe('JulesDebugger', () => {
     it('should display sources after successful fetch', async () => {
       const mockSources = [
         { id: 'source-1', name: 'my-repo', repositoryUri: 'https://github.com/user/my-repo' },
-        { id: 'source-2', name: 'another-repo', repositoryUri: 'https://github.com/user/another-repo' },
+        {
+          id: 'source-2',
+          name: 'another-repo',
+          repositoryUri: 'https://github.com/user/another-repo',
+        },
       ];
       mockGetSources.mockResolvedValueOnce(mockSources);
 
@@ -165,7 +169,9 @@ describe('JulesDebugger', () => {
 
       // Don't select a source
       const button = screen.getAllByText('Create Session')[1];
-      expect(screen.getByRole('button', { name: 'Create Session' }).props.accessibilityState?.disabled).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Create Session' }).props.accessibilityState?.disabled
+      ).toBeTruthy();
     });
 
     it('should disable Create Session button when no prompt entered', async () => {
@@ -180,7 +186,9 @@ describe('JulesDebugger', () => {
 
       // Don't enter a prompt
       const button = screen.getAllByText('Create Session')[1];
-      expect(screen.getByRole('button', { name: 'Create Session' }).props.accessibilityState?.disabled).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'Create Session' }).props.accessibilityState?.disabled
+      ).toBeTruthy();
     });
 
     it('should call createSession with correct parameters', async () => {
@@ -267,7 +275,7 @@ describe('JulesDebugger', () => {
 
       const branchInput = screen.getByPlaceholderText('main');
       fireEvent.changeText(branchInput, 'feature-branch');
-      
+
       expect(branchInput.props.value).toBe('feature-branch');
     });
 
@@ -276,7 +284,7 @@ describe('JulesDebugger', () => {
 
       const titleInput = screen.getByPlaceholderText('My Jules Session');
       fireEvent.changeText(titleInput, 'Custom Title');
-      
+
       expect(titleInput.props.value).toBe('Custom Title');
     });
 

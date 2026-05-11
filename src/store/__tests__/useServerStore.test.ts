@@ -7,7 +7,7 @@ describe('parseLegacyUrl', () => {
       host: '192.168.1.100',
       port: 11434,
       tls: false,
-      pathPrefix: undefined
+      pathPrefix: undefined,
     });
   });
 
@@ -17,7 +17,7 @@ describe('parseLegacyUrl', () => {
       host: 'example.com',
       port: 443,
       tls: true,
-      pathPrefix: undefined
+      pathPrefix: undefined,
     });
   });
 
@@ -27,7 +27,7 @@ describe('parseLegacyUrl', () => {
       host: 'example.com',
       port: 80,
       tls: false,
-      pathPrefix: undefined
+      pathPrefix: undefined,
     });
   });
 
@@ -37,7 +37,7 @@ describe('parseLegacyUrl', () => {
       host: 'example.com',
       port: 8080,
       tls: false,
-      pathPrefix: 'api/v1'
+      pathPrefix: 'api/v1',
     });
   });
 
@@ -47,7 +47,7 @@ describe('parseLegacyUrl', () => {
       host: 'example.com',
       port: 443,
       tls: true,
-      pathPrefix: 'api/v1'
+      pathPrefix: 'api/v1',
     });
   });
 
@@ -57,7 +57,7 @@ describe('parseLegacyUrl', () => {
       host: '192.168.1.100',
       port: 11434,
       tls: false,
-      pathPrefix: undefined
+      pathPrefix: undefined,
     });
   });
 
@@ -67,7 +67,7 @@ describe('parseLegacyUrl', () => {
       host: '192.168.1.100',
       port: 11434,
       tls: false,
-      pathPrefix: undefined
+      pathPrefix: undefined,
     });
   });
 
@@ -77,7 +77,7 @@ describe('parseLegacyUrl', () => {
       host: '192.168.1.100',
       port: 11434,
       tls: false,
-      pathPrefix: 'api/v1'
+      pathPrefix: 'api/v1',
     });
   });
 
@@ -87,8 +87,7 @@ describe('parseLegacyUrl', () => {
       host: 'localhost',
       port: 11434,
       tls: false,
-      pathPrefix: undefined
+      pathPrefix: undefined,
     });
   });
-
 });

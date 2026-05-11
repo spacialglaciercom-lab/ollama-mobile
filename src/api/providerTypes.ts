@@ -222,7 +222,10 @@ export const DEFAULT_OLLAMA_LOCAL_PROVIDER: Omit<
 /**
  * Default ZeroClaw configuration
  */
-export const DEFAULT_ZEROCLAW_PROVIDER: Omit<ZeroClawProviderConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+export const DEFAULT_ZEROCLAW_PROVIDER: Omit<
+  ZeroClawProviderConfig,
+  'id' | 'createdAt' | 'updatedAt'
+> = {
   name: 'ZeroClaw',
   type: 'zeroclaw',
   url: 'http://localhost:8080',
@@ -293,7 +296,9 @@ export function isOllamaLocalInstance(
 /**
  * Check if a provider instance is ZeroClaw
  */
-export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+export function isZeroClawInstance(
+  instance: AnyProviderInstance
+): instance is ZeroClawProviderInstance {
   return instance.config.type === 'zeroclaw';
 }
 
