@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { useChatStore } from '../store/useChatStore';
 
@@ -11,7 +11,10 @@ export function useConversation(conversationId: string | null) {
     }
   }, [conversationId]);
 
-  const conversation = conversations.find((c) => c.id === conversationId);
+  const conversation = useMemo(
+    () => conversations.find((c) => c.id === conversationId),
+    [conversations, conversationId]
+  );
 
   return {
     conversation,
