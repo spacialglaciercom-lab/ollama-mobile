@@ -126,19 +126,19 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
           disabled={isLoading}
         />
 
-        {sources.length > 0 && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Select Source</Text>
-            <View style={styles.pickerContainer}>
-              <Text
-                style={[
-                  styles.pickerText,
-                  selectedSource ? styles.pickerTextSelected : styles.pickerTextEmpty,
-                ]}
-              >
-                {selectedSource || 'Select a source...'}
-              </Text>
-            </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Select Source</Text>
+          <View style={styles.pickerContainer}>
+            <Text
+              style={[
+                styles.pickerText,
+                selectedSource ? styles.pickerTextSelected : styles.pickerTextEmpty,
+              ]}
+            >
+              {selectedSource || 'Select a source...'}
+            </Text>
+          </View>
+          {sources.length > 0 && (
             <ScrollView style={styles.sourceList} nestedScrollEnabled>
               {sources.map((source) => (
                 <Button
@@ -149,8 +149,8 @@ export default function JulesDebugger({ apiKey }: JulesDebuggerProps) {
                 />
               ))}
             </ScrollView>
-          </View>
-        )}
+          )}
+        </View>
       </View>
 
       <View style={styles.section}>
