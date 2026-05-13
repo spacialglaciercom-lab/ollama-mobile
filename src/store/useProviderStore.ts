@@ -64,13 +64,13 @@ export const useProviderStore = create<ProviderStore>()(
           await saveProviderApiKey(newConfig.type, newConfig.id, config.apiKey);
           const isConnected = await testConnectionWithKey(
             newConfig.type,
-            factoryConfig.url ||
+            newConfig.url ||
               (newConfig.type === 'ollama-cloud'
                 ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url
                 : newConfig.type === 'ollama-local'
                   ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url
                   : ''),
-            factoryConfig.apiKey
+            config.apiKey // The API key comes from the input config as it's not stored in newConfig
           );
           newConfig.isConnected = isConnected;
           if (isConnected) {

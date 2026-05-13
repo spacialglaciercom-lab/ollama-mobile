@@ -36,17 +36,24 @@ export async function pingServer(baseUrl: string, apiKey?: string): Promise<bool
 
 export async function fetchModels(baseUrl: string, apiKey?: string): Promise<OllamaListResponse> {
   const url = `${cleanUrl(baseUrl)}/api/tags`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: makeHeaders(apiKey),
-  });
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: makeHeaders(apiKey),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch models: ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.statusText}`);
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 export async function* streamChat(
@@ -198,18 +205,25 @@ export async function getModelInfo(
   modelName: string
 ): Promise<any> {
   const url = `${cleanUrl(baseUrl)}/api/show`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: makeHeaders(apiKey),
-    body: JSON.stringify({ model: modelName }),
-  });
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: makeHeaders(apiKey),
+      body: JSON.stringify({ model: modelName }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new Error(`Show failed: ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`Show failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 export async function checkServerStatus(
@@ -218,17 +232,24 @@ export async function checkServerStatus(
 ): Promise<{ status: boolean; models?: string[] }> {
   try {
     const url = `${cleanUrl(baseUrl)}/api/tags`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+        signal: controller.signal,
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      return { status: true, models: data.models?.map((m: any) => m.name) };
+      if (response.ok) {
+        const data = await response.json();
+        return { status: true, models: data.models?.map((m: any) => m.name) };
+      }
+      return { status: false };
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return { status: false };
   } catch (error) {
     return { status: false };
   }
