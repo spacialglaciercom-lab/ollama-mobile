@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import {
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
+import {
   View,
   FlatList,
   Text,
@@ -49,11 +49,11 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const conversationRef = useRef<string | null>(null);
 
   // Initialize chat
   useEffect(() => {
@@ -76,7 +76,7 @@ export default function ChatScreen() {
     }
   }, [messages, id]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputText.trim() || streaming) return;
 
     const userText = inputText.trim();
@@ -98,7 +98,7 @@ export default function ChatScreen() {
     localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: text });
+    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
@@ -106,7 +106,7 @@ export default function ChatScreen() {
     // Call API
     await sendMessage(
       selectedModel || 'llama3',
-      history,
+      apiMessages,
       (content) => {
         setStreamingContent(content);
         flatListRef.current?.scrollToEnd();
@@ -121,10 +121,13 @@ export default function ChatScreen() {
     );
 
     // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
-    if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
+    const convId = currentId || conversationRef.current;
+    if (convId) {
+      const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+      if (conv && conv.title === 'New Chat') {
+        const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+        updateConversationTitle(convId, title);
+      }
     }
   }, [
     inputText,
@@ -152,6 +155,36 @@ export default function ChatScreen() {
         ]
       : []),
   ];
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => {
+      const isSelected = selectedMessage?.id === item.id;
+      return (
+        <View
+          style={[
+            styles.bubbleWrap,
+            item.role === 'user' ? styles.bubbleWrapUser : styles.bubbleWrapAssistant,
+            isSelected && styles.bubbleWrapSelected,
+          ]}
+        >
+          <TouchableOpacity
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setSelectedMessage(item);
+            }}
+            activeOpacity={0.8}
+          >
+            {item.id === 'streaming' ? (
+              <StreamingBubble content={item.content} />
+            ) : (
+              <MessageBubble role={item.role} content={item.content} />
+            )}
+          </TouchableOpacity>
+        </View>
+      );
+    },
+    [selectedMessage]
+  );
 
   return (
     <KeyboardAvoidingView

@@ -76,6 +76,7 @@ export interface JulesProviderConfig extends BaseProviderConfig {
 export type ProviderConfig =
   | OllamaCloudProviderConfig
   | OllamaLocalProviderConfig
+  | ZeroClawProviderConfig
   | JulesProviderConfig;
 
 // ============================================
@@ -164,6 +165,7 @@ export interface JulesProviderInstance extends BaseProviderInstance<JulesProvide
 export type AnyProviderInstance =
   | OllamaCloudProviderInstance
   | OllamaLocalProviderInstance
+  | ZeroClawProviderInstance
   | JulesProviderInstance;
 
 // ============================================
