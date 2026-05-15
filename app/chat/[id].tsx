@@ -29,7 +29,6 @@ import { useServerStore } from '../../src/store/useServerStore';
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
-    conversations,
     messages,
     createConversation,
     addMessage,
@@ -50,7 +49,7 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
+  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
@@ -67,7 +66,15 @@ export default function ChatScreen() {
       setActiveConversation(id);
       loadMessages(id);
     }
-  }, [id, paramModel, setActiveConversation, loadMessages, selectModel]);
+  }, [
+    id,
+    paramModel,
+    setActiveConversation,
+    loadMessages,
+    selectModel,
+    createConversation,
+    selectedModel,
+  ]);
 
   // Sync messages from store to local
   useEffect(() => {
@@ -139,6 +146,8 @@ export default function ChatScreen() {
     systemPromptText,
     showSystemPrompt,
     updateConversationTitle,
+    id,
+    streamingContent,
   ]);
 
   const allMessages = [
@@ -157,7 +166,19 @@ export default function ChatScreen() {
   ];
 
   const renderItem = useCallback(
-    ({ item }: { item: any }) => {
+    ({
+      item,
+    }: {
+      item:
+        | StoredMessage
+        | {
+            id: string;
+            conversationId: string;
+            role: 'assistant';
+            content: string;
+            createdAt: number;
+          };
+    }) => {
       const isSelected = selectedMessage?.id === item.id;
       return (
         <View
