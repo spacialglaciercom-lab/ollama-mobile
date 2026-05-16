@@ -97,7 +97,11 @@ describe('JulesDebugger', () => {
     it('should display sources after successful fetch', async () => {
       const mockSources = [
         { id: 'source-1', name: 'my-repo', repositoryUri: 'https://github.com/user/my-repo' },
-        { id: 'source-2', name: 'another-repo', repositoryUri: 'https://github.com/user/another-repo' },
+        {
+          id: 'source-2',
+          name: 'another-repo',
+          repositoryUri: 'https://github.com/user/another-repo',
+        },
       ];
       mockGetSources.mockResolvedValueOnce(mockSources);
 
@@ -267,7 +271,7 @@ describe('JulesDebugger', () => {
 
       const branchInput = screen.getByPlaceholderText('main');
       fireEvent.changeText(branchInput, 'feature-branch');
-      
+
       expect(branchInput.props.value).toBe('feature-branch');
     });
 
@@ -276,7 +280,7 @@ describe('JulesDebugger', () => {
 
       const titleInput = screen.getByPlaceholderText('My Jules Session');
       fireEvent.changeText(titleInput, 'Custom Title');
-      
+
       expect(titleInput.props.value).toBe('Custom Title');
     });
 

@@ -4,10 +4,8 @@ import { getSources, createSession as julesCreateSession } from './julesApiServi
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
-  streamChat as ollamaStreamChat
+  streamChat as ollamaStreamChat,
 } from './ollamaClient';
-import { getSources, createSession as julesCreateSession } from './julesApiService';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
   ProviderFactoryConfig,
@@ -19,12 +17,14 @@ import {
   OllamaLocalProviderInstance,
   ZeroClawProviderInstance,
   JulesProviderInstance,
+  AnyProviderInstance,
   PROVIDER_SECURE_KEYS,
   DEFAULT_OLLAMA_CLOUD_PROVIDER,
   DEFAULT_OLLAMA_LOCAL_PROVIDER,
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
+import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory
@@ -194,6 +194,42 @@ export class ProviderFactory {
           messages,
           stream: true,
         })) {
+          allMessages.push(chunk);
+        }
+
+        return allMessages;
+      },
+    };
+  }
+
+  private static createZeroClawProvider(config: ZeroClawProviderConfig): ZeroClawProviderInstance {
+    return {
+      config,
+      testConnection: async () => {
+        const apiKey = await this.getApiKey(config.type, config.id);
+        if (!apiKey) return false;
+
+        try {
+          return await pingZeroClaw(config.url, apiKey);
+        } catch {
+          return false;
+        }
+      },
+      getModels: async () => {
+        // ZeroClaw might not support model listing in the same way
+        return [];
+      },
+      chat: async (messages: any[], model?: string) => {
+        const apiKey = await this.getApiKey(config.type, config.id);
+        if (!apiKey) throw new Error('API key not found');
+
+        const allMessages: any[] = [];
+
+        // Use streamZeroClawChat to collect chunks if non-streaming is needed
+        // Since ZeroClawProviderInstance.chat is not defined as async iterable here
+        // we might need to adjust based on the interface definition in providerTypes.ts
+
+        for await (const chunk of streamZeroClawChat(config.url, apiKey, messages)) {
           allMessages.push(chunk);
         }
 

@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import * as Haptics from 'expo-haptics';
 import {
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
   View,
   FlatList,
   Text,
@@ -14,13 +11,15 @@ import { useLocalSearchParams, router } from 'expo-router';
   Pressable,
   Alert,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { StatusBar } from 'expo-status-bar';
+import { useLocalSearchParams, router } from 'expo-router';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
 import { ModelPickerSheet } from '../../src/components/ModelPickerSheet';
 import { SettingsSheet } from '../../src/components/SettingsSheet';
 import { MessageBubble } from '../../src/components/chat/MessageBubble';
-import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
@@ -29,7 +28,6 @@ import { useServerStore } from '../../src/store/useServerStore';
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
-    conversations,
     messages,
     createConversation,
     addMessage,
@@ -49,25 +47,26 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const conversationRef = useRef<string | null>(null);
 
   // Initialize chat
   useEffect(() => {
     if (id === 'new') {
-      const model = paramModel || selectedModel || 'gpt-oss:120b';
+      const model = paramModel || selectedModel || 'llama3';
       createConversation('New Chat', model).then((conv) => {
         conversationRef.current = conv.id;
         router.replace('/chat/' + conv.id);
       });
     } else if (id) {
+      conversationRef.current = id;
       setActiveConversation(id);
       loadMessages(id);
     }
-  }, [id, paramModel, setActiveConversation, loadMessages, selectModel]);
+  }, [id, paramModel, setActiveConversation, loadMessages, createConversation, selectedModel]);
 
   // Sync messages from store to local
   useEffect(() => {
@@ -76,55 +75,62 @@ export default function ChatScreen() {
     }
   }, [messages, id]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputText.trim() || streaming) return;
 
     const userText = inputText.trim();
     setInputText('');
 
-    let currentId = id === 'new' ? '' : id;
+    const currentId = conversationRef.current;
+    if (!currentId) return;
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
-    if (id === 'new') {
-      setLocalMessages([userMsg]);
-    }
 
     // Build messages array for API
     const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
+
+    // Include history
     localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: text });
+
+    // Add current user message to API call if not already in localMessages
+    if (!localMessages.find(m => m.id === userMsg.id)) {
+        apiMessages.push({ role: 'user', content: userText });
+    }
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
 
+    let fullStreamingContent = '';
+
     // Call API
     await sendMessage(
       selectedModel || 'llama3',
-      history,
+      apiMessages,
       (content) => {
+        fullStreamingContent = content;
         setStreamingContent(content);
         flatListRef.current?.scrollToEnd();
       },
       async () => {
         // Done streaming, save assistant message
-        if (streamingContent) {
-          await addMessage(currentId, 'assistant', streamingContent);
+        if (fullStreamingContent) {
+          await addMessage(currentId, 'assistant', fullStreamingContent);
           setStreamingContent('');
         }
       }
     );
 
     // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
+      const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+      updateConversationTitle(currentId, title);
     }
   }, [
     inputText,
@@ -137,6 +143,16 @@ export default function ChatScreen() {
     showSystemPrompt,
     updateConversationTitle,
   ]);
+
+  const renderItem = ({ item }: { item: StoredMessage | any }) => (
+    <MessageBubble
+      role={item.role}
+      content={item.content}
+      selected={selectedMessage?.id === item.id}
+      onLongPress={() => setSelectedMessage(item)}
+      isStreaming={item.id === 'streaming'}
+    />
+  );
 
   const allMessages = [
     ...localMessages,
