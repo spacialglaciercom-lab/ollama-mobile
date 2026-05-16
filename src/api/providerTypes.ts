@@ -76,6 +76,7 @@ export interface JulesProviderConfig extends BaseProviderConfig {
 export type ProviderConfig =
   | OllamaCloudProviderConfig
   | OllamaLocalProviderConfig
+  | ZeroClawProviderConfig
   | JulesProviderConfig;
 
 // ============================================
@@ -142,6 +143,7 @@ export interface OllamaLocalProviderInstance extends BaseProviderInstance<Ollama
  * ZeroClaw provider instance
  */
 export interface ZeroClawProviderInstance extends BaseProviderInstance<ZeroClawProviderConfig> {
+  getModels: () => Promise<any[]>;
   chat: (messages: any[]) => Promise<any>;
 }
 
@@ -164,6 +166,7 @@ export interface JulesProviderInstance extends BaseProviderInstance<JulesProvide
 export type AnyProviderInstance =
   | OllamaCloudProviderInstance
   | OllamaLocalProviderInstance
+  | ZeroClawProviderInstance
   | JulesProviderInstance;
 
 // ============================================

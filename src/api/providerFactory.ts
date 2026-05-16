@@ -6,7 +6,6 @@ import {
   pingServer,
   streamChat as ollamaStreamChat
 } from './ollamaClient';
-import { getSources, createSession as julesCreateSession } from './julesApiService';
 import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
@@ -19,6 +18,7 @@ import {
   OllamaLocalProviderInstance,
   ZeroClawProviderInstance,
   JulesProviderInstance,
+  AnyProviderInstance,
   PROVIDER_SECURE_KEYS,
   DEFAULT_OLLAMA_CLOUD_PROVIDER,
   DEFAULT_OLLAMA_LOCAL_PROVIDER,
@@ -194,6 +194,39 @@ export class ProviderFactory {
           messages,
           stream: true,
         })) {
+          allMessages.push(chunk);
+        }
+
+        return allMessages;
+      },
+    };
+  }
+
+  private static createZeroClawProvider(
+    config: ZeroClawProviderConfig
+  ): ZeroClawProviderInstance {
+    return {
+      config,
+      testConnection: async () => {
+        const apiKey = await this.getApiKey(config.type, config.id);
+        if (!apiKey) return false;
+
+        try {
+          return await pingZeroClaw(config.url, apiKey);
+        } catch {
+          return false;
+        }
+      },
+      getModels: async () => {
+        return [];
+      },
+      chat: async (messages: any[]) => {
+        const apiKey = await this.getApiKey(config.type, config.id);
+        if (!apiKey) throw new Error('API key not found');
+
+        const allMessages: any[] = [];
+
+        for await (const chunk of streamZeroClawChat(config.url, apiKey, messages)) {
           allMessages.push(chunk);
         }
 
