@@ -4,8 +4,9 @@ import { getSources, createSession as julesCreateSession } from './julesApiServi
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
-  streamChat as ollamaStreamChat,
+  streamChat as ollamaStreamChat
 } from './ollamaClient';
+import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
   ProviderFactoryConfig,
@@ -24,7 +25,6 @@ import {
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory
@@ -202,7 +202,9 @@ export class ProviderFactory {
     };
   }
 
-  private static createZeroClawProvider(config: ZeroClawProviderConfig): ZeroClawProviderInstance {
+  private static createZeroClawProvider(
+    config: ZeroClawProviderConfig
+  ): ZeroClawProviderInstance {
     return {
       config,
       testConnection: async () => {
@@ -216,18 +218,13 @@ export class ProviderFactory {
         }
       },
       getModels: async () => {
-        // ZeroClaw might not support model listing in the same way
         return [];
       },
-      chat: async (messages: any[], model?: string) => {
+      chat: async (messages: any[]) => {
         const apiKey = await this.getApiKey(config.type, config.id);
         if (!apiKey) throw new Error('API key not found');
 
         const allMessages: any[] = [];
-
-        // Use streamZeroClawChat to collect chunks if non-streaming is needed
-        // Since ZeroClawProviderInstance.chat is not defined as async iterable here
-        // we might need to adjust based on the interface definition in providerTypes.ts
 
         for await (const chunk of streamZeroClawChat(config.url, apiKey, messages)) {
           allMessages.push(chunk);

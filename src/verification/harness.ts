@@ -21,9 +21,11 @@ export const createVerificationHarness = <T, R>(
       const output = algorithm(contract.input);
       const isValid = contract.invariant(contract.input, output);
 
-      useDiagnosticsStore
-        .getState()
-        .info('Verification', `${name}: ${isValid ? 'PASSED' : 'FAILED'}`, { name, isValid });
+      useDiagnosticsStore.getState().info(
+        'Verification',
+        `${name}: ${isValid ? 'PASSED' : 'FAILED'}`,
+        { name, isValid }
+      );
 
       return isValid;
     },

@@ -34,11 +34,7 @@ interface ProviderStore {
   setActiveProvider: (id: string) => void;
   testProviderConnection: (id: string) => Promise<boolean>;
   testAllConnections: () => Promise<Record<string, boolean>>;
-  validateConnection: (
-    type: ProviderConfig['type'],
-    url: string,
-    apiKey: string
-  ) => Promise<boolean>;
+  validateConnection: (type: ProviderConfig['type'], url: string, apiKey: string) => Promise<boolean>;
   saveApiKey: (id: string, apiKey: string) => Promise<void>;
   getApiKey: (id: string) => Promise<string | null>;
   removeApiKey: (id: string) => Promise<void>;

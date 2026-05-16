@@ -35,7 +35,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { selectedModel, selectModel } = useModelStore();
+  const { selectedModel } = useModelStore();
   const activeServer = useServerStore((s) => s.getActiveServer());
   const { sendMessage, streaming } = useOllamaStream();
 
