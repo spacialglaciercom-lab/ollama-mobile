@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import {
-import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
   View,
   FlatList,
   Text,
@@ -49,11 +49,11 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const conversationRef = useRef<string | null>(id !== 'new' ? id : null);
 
   // Initialize chat
   useEffect(() => {
@@ -63,7 +63,8 @@ export default function ChatScreen() {
         conversationRef.current = conv.id;
         router.replace('/chat/' + conv.id);
       });
-    } else if (id) {
+    } else if (id && id !== 'new') {
+      conversationRef.current = id;
       setActiveConversation(id);
       loadMessages(id);
     }
@@ -76,13 +77,14 @@ export default function ChatScreen() {
     }
   }, [messages, id]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputText.trim() || streaming) return;
 
     const userText = inputText.trim();
     setInputText('');
 
-    let currentId = id === 'new' ? '' : id;
+    const currentId = conversationRef.current;
+    if (!currentId) return;
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
@@ -95,10 +97,14 @@ export default function ChatScreen() {
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
+    // localMessages contains the history up to the previous turn.
+    // We add the current user message to apiMessages for the API call.
     localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: text });
+    apiMessages.push({ role: 'user', content: userText });
+
+    // Scroll to bottom
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
@@ -106,7 +112,7 @@ export default function ChatScreen() {
     // Call API
     await sendMessage(
       selectedModel || 'llama3',
-      history,
+      apiMessages,
       (content) => {
         setStreamingContent(content);
         flatListRef.current?.scrollToEnd();
@@ -121,10 +127,10 @@ export default function ChatScreen() {
     );
 
     // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
+      const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+      updateConversationTitle(currentId, title);
     }
   }, [
     inputText,
@@ -152,6 +158,23 @@ export default function ChatScreen() {
         ]
       : []),
   ];
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => {
+      if (item.id === 'streaming') {
+        return <StreamingBubble content={item.content} />;
+      }
+      return (
+        <MessageBubble
+          role={item.role}
+          content={item.content}
+          selected={selectedMessage?.id === item.id}
+          onLongPress={() => setSelectedMessage(item)}
+        />
+      );
+    },
+    [selectedMessage]
+  );
 
   return (
     <KeyboardAvoidingView

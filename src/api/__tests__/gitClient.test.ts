@@ -3,13 +3,13 @@ import { assertSafePath, assertSafeRepoId } from '../gitClient';
 jest.mock('expo-file-system', () => ({
   File: jest.fn(),
   Directory: jest.fn(),
-  Paths: { document: { uri: 'file:///mock/' } }
+  Paths: { document: { uri: 'file:///mock/' } },
 }));
 
 jest.mock('isomorphic-git', () => ({
   plugins: {
-    set: jest.fn()
-  }
+    set: jest.fn(),
+  },
 }));
 
 describe('gitClient Security Helpers', () => {
@@ -25,8 +25,12 @@ describe('gitClient Security Helpers', () => {
     });
 
     it('should throw on directory traversal', () => {
-      expect(() => assertSafePath('../../../etc/passwd')).toThrow('Directory traversal is not allowed');
-      expect(() => assertSafePath('some/valid/dir/../../invalid.txt')).toThrow('Directory traversal is not allowed');
+      expect(() => assertSafePath('../../../etc/passwd')).toThrow(
+        'Directory traversal is not allowed'
+      );
+      expect(() => assertSafePath('some/valid/dir/../../invalid.txt')).toThrow(
+        'Directory traversal is not allowed'
+      );
     });
 
     it('should throw on null bytes', () => {
