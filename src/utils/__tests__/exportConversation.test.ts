@@ -1,5 +1,5 @@
-import { conversationToMarkdown } from '../exportConversation';
 import { Conversation, StoredMessage } from '../../api/types';
+import { conversationToMarkdown } from '../exportConversation';
 
 describe('conversationToMarkdown', () => {
   const conversation: Conversation = {

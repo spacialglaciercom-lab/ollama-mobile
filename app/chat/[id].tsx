@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import {
-import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
   View,
   FlatList,
   Text,
@@ -49,11 +49,11 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const conversationRef = useRef<string | null>(id === 'new' ? null : id);
 
   // Initialize chat
   useEffect(() => {
@@ -76,17 +76,19 @@ export default function ChatScreen() {
     }
   }, [messages, id]);
 
-  const handleSend = async () => {
+  const streamingContentRef = useRef('');
+
+  const handleSend = useCallback(async () => {
     if (!inputText.trim() || streaming) return;
 
     const userText = inputText.trim();
     setInputText('');
 
-    let currentId = id === 'new' ? '' : id;
+    const currentId = id === 'new' ? (conversationRef.current || '') : id;
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
-    if (id === 'new') {
+    if (id === 'new' && !conversationRef.current) {
       setLocalMessages([userMsg]);
     }
 
@@ -98,35 +100,39 @@ export default function ChatScreen() {
     localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: text });
+    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
 
     // Call API
+    streamingContentRef.current = '';
     await sendMessage(
       selectedModel || 'llama3',
-      history,
+      apiMessages,
       (content) => {
+        streamingContentRef.current = content;
         setStreamingContent(content);
         flatListRef.current?.scrollToEnd();
       },
       async () => {
         // Done streaming, save assistant message
-        if (streamingContent) {
-          await addMessage(currentId, 'assistant', streamingContent);
+        if (streamingContentRef.current) {
+          await addMessage(currentId, 'assistant', streamingContentRef.current);
           setStreamingContent('');
+          streamingContentRef.current = '';
         }
       }
     );
 
     // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
+      const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+      updateConversationTitle(currentId, title);
     }
   }, [
+    id,
     inputText,
     selectedModel,
     localMessages,
@@ -152,6 +158,26 @@ export default function ChatScreen() {
         ]
       : []),
   ];
+
+  const renderItem = ({ item }: { item: StoredMessage | any }) => {
+    if (item.id === 'streaming') {
+      return (
+        <View style={styles.bubbleWrap}>
+          <StreamingBubble content={item.content} />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.bubbleWrap}>
+        <MessageBubble
+          role={item.role}
+          content={item.content}
+          selected={selectedMessage?.id === item.id}
+          onLongPress={() => setSelectedMessage(item)}
+        />
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
