@@ -1,8 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import * as Haptics from 'expo-haptics';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
   View,
   FlatList,
   Text,
@@ -14,6 +11,8 @@ import { useLocalSearchParams, router } from 'expo-router';
   Pressable,
   Alert,
 } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -24,12 +23,11 @@ import { StreamingBubble } from '../../src/components/chat/StreamingBubble';
 import { useOllamaStream } from '../../src/hooks/useOllamaStream';
 import { useChatStore } from '../../src/store/useChatStore';
 import { useModelStore } from '../../src/store/useModelStore';
-import { useServerStore } from '../../src/store/useServerStore';
+import { useProviderStore } from '../../src/store/useProviderStore';
 
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
-    conversations,
     messages,
     createConversation,
     addMessage,
@@ -37,8 +35,8 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { selectedModel, selectModel } = useModelStore();
-  const activeServer = useServerStore((s) => s.getActiveServer());
+  const { selectedModel } = useModelStore();
+  const activeProvider = useProviderStore((s) => s.getActiveProvider());
   const { sendMessage, streaming } = useOllamaStream();
 
   const [streamingContent, setStreamingContent] = useState('');
@@ -49,25 +47,26 @@ export default function ChatScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
-  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
+  const conversationRef = useRef<string | null>(null);
 
   // Initialize chat
   useEffect(() => {
     if (id === 'new') {
-      const model = paramModel || selectedModel || 'gpt-oss:120b';
+      const model = paramModel || selectedModel || 'llama3';
       createConversation('New Chat', model).then((conv) => {
         conversationRef.current = conv.id;
         router.replace('/chat/' + conv.id);
       });
     } else if (id) {
+      conversationRef.current = id;
       setActiveConversation(id);
       loadMessages(id);
     }
-  }, [id, paramModel, setActiveConversation, loadMessages, selectModel]);
+  }, [id, paramModel, setActiveConversation, loadMessages, createConversation, selectedModel]);
 
   // Sync messages from store to local
   useEffect(() => {
@@ -82,7 +81,7 @@ export default function ChatScreen() {
     const userText = inputText.trim();
     setInputText('');
 
-    let currentId = id === 'new' ? '' : id;
+    const currentId = conversationRef.current || '';
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
@@ -95,10 +94,12 @@ export default function ChatScreen() {
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
+
     localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: text });
+
+    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
@@ -106,7 +107,7 @@ export default function ChatScreen() {
     // Call API
     await sendMessage(
       selectedModel || 'llama3',
-      history,
+      apiMessages,
       (content) => {
         setStreamingContent(content);
         flatListRef.current?.scrollToEnd();
@@ -121,24 +122,14 @@ export default function ChatScreen() {
     );
 
     // Auto-title from first user message
-    const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
-      const title = text.length > 50 ? text.slice(0, 50) + '...' : text;
-      updateConversationTitle(convId, title);
+      const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+      updateConversationTitle(currentId, title);
     }
-  }, [
-    inputText,
-    selectedModel,
-    localMessages,
-    streaming,
-    addMessage,
-    sendMessage,
-    systemPromptText,
-    showSystemPrompt,
-    updateConversationTitle,
-  ]);
+  };
 
-  const allMessages = [
+  const allMessages = useMemo(() => [
     ...localMessages,
     ...(streamingContent
       ? [
@@ -151,12 +142,26 @@ export default function ChatScreen() {
           },
         ]
       : []),
-  ];
+  ], [localMessages, streamingContent]);
+
+  const renderItem = useCallback(({ item }: { item: any }) => {
+    if (item.id === 'streaming') {
+      return <StreamingBubble content={item.content} />;
+    }
+    return (
+      <MessageBubble
+        role={item.role}
+        content={item.content}
+        onLongPress={() => setSelectedMessage(item)}
+      />
+    );
+  }, []);
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      keyboardVerticalOffset={0}
     >
       <StatusBar style="light" />
 
@@ -288,9 +293,9 @@ export default function ChatScreen() {
 
         {/* Context chips */}
         <View style={styles.chips}>
-          {activeServer && (
+          {activeProvider && (
             <View style={styles.chip}>
-              <Text style={styles.chipText}>🟢 {activeServer.name}</Text>
+              <Text style={styles.chipText}>🟢 {activeProvider.name}</Text>
             </View>
           )}
           <TouchableOpacity
