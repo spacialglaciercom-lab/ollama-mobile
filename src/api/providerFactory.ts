@@ -6,7 +6,6 @@ import {
   pingServer,
   streamChat as ollamaStreamChat
 } from './ollamaClient';
-import { getSources, createSession as julesCreateSession } from './julesApiService';
 import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
