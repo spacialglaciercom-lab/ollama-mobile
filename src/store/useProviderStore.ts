@@ -64,13 +64,13 @@ export const useProviderStore = create<ProviderStore>()(
           await saveProviderApiKey(newConfig.type, newConfig.id, config.apiKey);
           const isConnected = await testConnectionWithKey(
             newConfig.type,
-            factoryConfig.url ||
+            config.url ||
               (newConfig.type === 'ollama-cloud'
                 ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url
                 : newConfig.type === 'ollama-local'
                   ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url
                   : ''),
-            factoryConfig.apiKey
+            config.apiKey
           );
           newConfig.isConnected = isConnected;
           if (isConnected) {
@@ -128,7 +128,7 @@ export const useProviderStore = create<ProviderStore>()(
           providers: newProviders,
           activeProviderId: newActiveId,
           connectionStatus: newConnectionStatus,
-        }));
+        });
       },
 
       setActiveProvider: (id: string) => {
@@ -145,12 +145,12 @@ export const useProviderStore = create<ProviderStore>()(
           set((state) => ({
             providers: state.providers.map((p) =>
               p.id === id
-                ? {
+                ? ({
                     ...p,
                     isConnected,
                     isConfigured: true,
                     lastConnectionTest: isConnected ? Date.now() : p.lastConnectionTest,
-                  } as ProviderConfig
+                  } as ProviderConfig)
                 : p
             ),
             connectionStatus: {
@@ -169,7 +169,7 @@ export const useProviderStore = create<ProviderStore>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           set((state) => ({
-            providers: state.providers.map((p) => (p.id === id ? { ...p, isConnected: false } : p)),
+            providers: state.providers.map((p) => (p.id === id ? ({ ...p, isConnected: false } as ProviderConfig) : p)),
             connectionStatus: {
               ...state.connectionStatus,
               [id]: {
@@ -203,7 +203,7 @@ export const useProviderStore = create<ProviderStore>()(
         if (!provider) throw new Error(`Provider with id ${id} not found`);
         await saveProviderApiKey(provider.type, id, apiKey);
         set((state) => ({
-          providers: state.providers.map((p) => (p.id === id ? { ...p, isConfigured: true } : p)),
+          providers: state.providers.map((p) => (p.id === id ? ({ ...p, isConfigured: true } as ProviderConfig) : p)),
           connectionStatus: {
             ...state.connectionStatus,
             [id]: {
@@ -226,7 +226,7 @@ export const useProviderStore = create<ProviderStore>()(
         await removeProviderApiKey(provider.type, id);
         set((state) => ({
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: false, isConnected: false } as ProviderConfig : p
+            p.id === id ? ({ ...p, isConfigured: false, isConnected: false } as ProviderConfig) : p
           ),
         }));
       },
