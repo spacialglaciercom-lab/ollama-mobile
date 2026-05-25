@@ -159,7 +159,7 @@ describe('JulesDebugger', () => {
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
         expect(screen.getByRole('button', { name: 'my-repo' })).toBeTruthy();
       });
@@ -174,7 +174,7 @@ describe('JulesDebugger', () => {
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
         fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
@@ -360,7 +360,7 @@ describe('JulesDebugger', () => {
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
 
       await waitFor(() => {
         expect(screen.getByText(/Fetching sources.../)).toBeTruthy();

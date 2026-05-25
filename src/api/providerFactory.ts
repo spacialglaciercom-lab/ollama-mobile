@@ -1,6 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { getSources, createSession as julesCreateSession } from './julesApiService';
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
@@ -14,6 +13,7 @@ import {
   OllamaLocalProviderConfig,
   ZeroClawProviderConfig,
   JulesProviderConfig,
+  AnyProviderInstance,
   OllamaCloudProviderInstance,
   OllamaLocalProviderInstance,
   ZeroClawProviderInstance,
@@ -193,6 +193,30 @@ export class ProviderFactory {
           messages,
           stream: true,
         })) {
+          allMessages.push(chunk);
+        }
+
+        return allMessages;
+      },
+    };
+  }
+
+  private static createZeroClawProvider(config: ZeroClawProviderConfig): ZeroClawProviderInstance {
+    return {
+      config,
+      testConnection: async () => {
+        const apiKey = await this.getApiKey(config.type, config.id);
+        try {
+          return await pingZeroClaw(config.url, apiKey || undefined);
+        } catch {
+          return false;
+        }
+      },
+      chat: async (messages: any[]) => {
+        const apiKey = await this.getApiKey(config.type, config.id);
+        const allMessages: any[] = [];
+
+        for await (const chunk of streamZeroClawChat(config.url, apiKey || undefined, messages)) {
           allMessages.push(chunk);
         }
 
