@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 
 import { streamChat } from '../api/ollamaClient';
 import { streamZeroClawChat } from '../api/zeroclawClient';
-import { useServerStore, buildServerUrl } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
 
 interface UseOllamaStreamReturn {
   sendMessage: (
@@ -26,9 +26,9 @@ export function useOllamaStream(): UseOllamaStreamReturn {
       onContent: (fullContent: string) => void,
       onDone: () => void
     ) => {
-      const server = useServerStore.getState().getActiveServer();
-      if (!server) {
-        setError('No active server configured');
+      const provider = useProviderStore.getState().getActiveProvider();
+      if (!provider) {
+        setError('No active provider configured');
         onDone();
         return;
       }
@@ -40,18 +40,19 @@ export function useOllamaStream(): UseOllamaStreamReturn {
 
       try {
         let gen;
-        const serverUrl = buildServerUrl(server);
-        if (server.type === 'zeroclaw') {
+        const apiKey = await useProviderStore.getState().getApiKey(provider.id);
+
+        if (provider.type === 'zeroclaw') {
           gen = streamZeroClawChat(
-            serverUrl,
-            server.apiKey,
+            provider.url,
+            apiKey || undefined,
             messages.map((m) => ({
               role: m.role as 'user' | 'assistant' | 'system',
               content: m.content,
             }))
           );
-        } else {
-          gen = streamChat(serverUrl, server.apiKey, {
+        } else if (provider.type === 'ollama-cloud' || provider.type === 'ollama-local') {
+          gen = streamChat(provider.url, apiKey || undefined, {
             model,
             messages: messages.map((m) => ({
               role: m.role as 'user' | 'assistant' | 'system',
@@ -59,6 +60,8 @@ export function useOllamaStream(): UseOllamaStreamReturn {
             })),
             stream: true,
           });
+        } else {
+          throw new Error(`Provider type ${provider.type} does not support streaming chat yet`);
         }
 
         for await (const chunk of gen) {
