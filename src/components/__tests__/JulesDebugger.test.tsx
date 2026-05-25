@@ -43,7 +43,7 @@ describe('JulesDebugger', () => {
 
       expect(screen.getByText('Configuration')).toBeTruthy();
       expect(screen.getByText('Sources')).toBeTruthy();
-      expect(screen.getByText('Create Session')).toBeTruthy();
+      expect(screen.getAllByText('Create Session').length).toBeGreaterThan(0);
       expect(screen.getByText('Logs')).toBeTruthy();
     });
 
@@ -58,14 +58,14 @@ describe('JulesDebugger', () => {
     it('should render buttons', () => {
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      expect(screen.getByText('Fetch Sources')).toBeTruthy();
-      expect(screen.getByText('Create Session')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Fetch Sources' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Create Session' })).toBeTruthy();
     });
 
-    it('should show empty state for source selection', () => {
+    it('should not show source selection initially', () => {
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      expect(screen.getByText('Select a source...')).toBeTruthy();
+      expect(screen.queryByText('Select a source...')).toBeNull();
     });
 
     it('should show empty logs message initially', () => {
@@ -158,13 +158,13 @@ describe('JulesDebugger', () => {
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
         expect(screen.getByRole('button', { name: 'my-repo' })).toBeTruthy();
       });
 
       // Don't select a source
-      const button = screen.getByText('Create Session');
+      const button = screen.getByRole('button', { name: 'Create Session' });
       expect(button.props.accessibilityState?.disabled).toBeTruthy();
     });
 
@@ -173,13 +173,13 @@ describe('JulesDebugger', () => {
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
       await waitFor(() => {
         fireEvent.press(screen.getByRole('button', { name: 'my-repo' }));
       });
 
       // Don't enter a prompt
-      const button = screen.getByText('Create Session');
+      const button = screen.getByRole('button', { name: 'Create Session' });
       expect(button.props.accessibilityState?.disabled).toBeTruthy();
     });
 
@@ -200,7 +200,7 @@ describe('JulesDebugger', () => {
       fireEvent.changeText(promptInput, 'Fix the bug');
 
       // Create session
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
 
       await waitFor(() => {
         expect(mockCreateSession).toHaveBeenCalledTimes(1);
@@ -228,7 +228,7 @@ describe('JulesDebugger', () => {
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Fix the bug');
 
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
 
       await waitFor(() => {
         expect(screen.getByText('Session ID: session-123')).toBeTruthy();
@@ -250,7 +250,7 @@ describe('JulesDebugger', () => {
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Fix the bug');
 
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
 
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
@@ -302,7 +302,7 @@ describe('JulesDebugger', () => {
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Add feature');
 
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
 
       await waitFor(() => {
         expect(mockCreateSession).toHaveBeenCalledWith(
@@ -337,7 +337,7 @@ describe('JulesDebugger', () => {
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Add feature');
 
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
 
       await waitFor(() => {
         expect(mockCreateSession).toHaveBeenCalledWith(
@@ -359,7 +359,7 @@ describe('JulesDebugger', () => {
 
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      fireEvent.press(screen.getByText('Fetch Sources'));
+      fireEvent.press(screen.getByRole('button', { name: 'Fetch Sources' }));
 
       await waitFor(() => {
         expect(screen.getByText(/Fetching sources.../)).toBeTruthy();
@@ -407,7 +407,7 @@ describe('JulesDebugger', () => {
       const promptInput = screen.getByPlaceholderText('What would you like Jules to do?');
       fireEvent.changeText(promptInput, 'Test prompt');
 
-      fireEvent.press(screen.getByText('Create Session'));
+      fireEvent.press(screen.getByRole('button', { name: 'Create Session' }));
 
       await waitFor(() => {
         expect(screen.getByText('Session Result')).toBeTruthy();

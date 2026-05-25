@@ -12,7 +12,7 @@
     "test": "jest --config jest.config.js"
   },
   "dependencies": {
-    "ajv": "^6.12.6",
+    "ajv": "^6.15.0",
     "ajv-keywords": "^3.5.2",
     "buffer": "^6.0.3",
     "expo": "~52.0.0",

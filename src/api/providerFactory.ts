@@ -1,6 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
 
-import { getSources, createSession as julesCreateSession } from './julesApiService';
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
