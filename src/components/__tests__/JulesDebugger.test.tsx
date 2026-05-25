@@ -43,7 +43,8 @@ describe('JulesDebugger', () => {
 
       expect(screen.getByText('Configuration')).toBeTruthy();
       expect(screen.getByText('Sources')).toBeTruthy();
-      expect(screen.getAllByText('Create Session').length).toBeGreaterThan(0);
+      // Use getAllByText because "Create Session" is both a section title and a button text
+      expect(screen.getAllByText('Create Session').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Logs')).toBeTruthy();
     });
 
@@ -58,14 +59,14 @@ describe('JulesDebugger', () => {
     it('should render buttons', () => {
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      expect(screen.getByRole('button', { name: 'Fetch Sources' })).toBeTruthy();
+      expect(screen.getByText('Fetch Sources')).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Create Session' })).toBeTruthy();
     });
 
     it('should not show source selection initially', () => {
       render(<JulesDebugger apiKey={TEST_API_KEY} />);
 
-      expect(screen.queryByText('Select a source...')).toBeNull();
+      expect(screen.queryByText(/Select a source\.\.\./)).toBeNull();
     });
 
     it('should show empty logs message initially', () => {

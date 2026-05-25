@@ -83,13 +83,13 @@ describe('julesApiService', () => {
     it('should throw error when fetch fails with status 401', async () => {
       mockFetchResponse(false, 401, {}, 'Unauthorized');
 
-      await expect(getSources(TEST_API_KEY)).rejects.toThrow(/Failed to fetch sources: 401 Unauthorized/);
+      await expect(getSources(TEST_API_KEY)).rejects.toThrow('Failed to fetch sources: 401 Unauthorized');
     });
 
     it('should throw error when fetch fails with status 404', async () => {
       mockFetchResponse(false, 404, {}, 'Not Found');
 
-      await expect(getSources(TEST_API_KEY)).rejects.toThrow(/Failed to fetch sources: 404 Not Found/);
+      await expect(getSources(TEST_API_KEY)).rejects.toThrow('Failed to fetch sources: 404 Not Found');
     });
 
     it('should throw error when network request fails', async () => {
@@ -180,7 +180,7 @@ describe('julesApiService', () => {
       mockFetchResponse(false, 400, { error: { message: 'Invalid request' } }, 'Bad Request');
 
       await expect(createSession(TEST_API_KEY, 'invalid-source', 'prompt')).rejects.toThrow(
-        /Failed to create session: 400 Bad Request/
+        'Failed to create session: 400 Bad Request'
       );
     });
 
@@ -227,7 +227,7 @@ describe('julesApiService', () => {
       mockFetchResponse(false, 403, { error: { message: 'Not authorized' } }, 'Forbidden');
 
       await expect(approvePlan(TEST_API_KEY, 'session-123')).rejects.toThrow(
-        /Failed to approve plan: 403 Forbidden/
+        'Failed to approve plan: 403 Forbidden'
       );
     });
 
@@ -235,7 +235,7 @@ describe('julesApiService', () => {
       mockFetchResponse(false, 404, {}, 'Not Found');
 
       await expect(approvePlan(TEST_API_KEY, 'non-existent-session')).rejects.toThrow(
-        /Failed to approve plan: 404 Not Found/
+        'Failed to approve plan: 404 Not Found'
       );
     });
   });
@@ -296,7 +296,7 @@ describe('julesApiService', () => {
       mockFetchResponse(false, 500, { error: { message: 'Internal server error' } }, 'Internal Server Error');
 
       await expect(sendMessage(TEST_API_KEY, 'session-123', 'Hello')).rejects.toThrow(
-        /Failed to send message: 500 Internal Server Error/
+        'Failed to send message: 500 Internal Server Error'
       );
     });
   });

@@ -78,14 +78,15 @@ export default function ChatScreen() {
     }
   }, [messages, id]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputText.trim() || streaming) return;
 
     const userText = inputText.trim();
     setInputText('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const currentId = conversationRef.current || '';
+    let currentId = id === 'new' ? '' : id;
+    const convId = currentId; // Assuming currentId is the conversation ID
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
@@ -101,13 +102,10 @@ export default function ChatScreen() {
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
-
-    // Include existing messages
-    updatedLocalMessages.forEach((msg) => {
-      if (msg.role !== 'system') {
-        apiMessages.push({ role: msg.role as any, content: msg.content });
-      }
-    });
+    localMessages
+      .filter((msg) => msg.role !== 'system')
+      .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
+    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -139,7 +137,7 @@ export default function ChatScreen() {
     const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
-      updateConversationTitle(currentId, title);
+      updateConversationTitle(convId, title);
     }
   };
 
