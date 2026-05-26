@@ -13,14 +13,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <View
-      style={[
-        styles.container,
-        isUser ? styles.user : isSystem ? styles.system : styles.assistant,
-      ]}
+      style={[styles.container, isUser ? styles.user : isSystem ? styles.system : styles.assistant]}
     >
-      <Text style={[styles.text, isSystem && styles.systemText]}>
-        {message.content}
-      </Text>
+      <Text style={[styles.text, isSystem && styles.systemText]}>{message.content}</Text>
     </View>
   );
 }

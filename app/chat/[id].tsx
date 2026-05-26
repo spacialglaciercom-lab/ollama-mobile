@@ -102,10 +102,9 @@ export default function ChatScreen() {
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
-    localMessages
+    updatedLocalMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -139,7 +138,19 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(convId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    id,
+    addMessage,
+    localMessages,
+    showSystemPrompt,
+    systemPromptText,
+    selectedModel,
+    sendMessage,
+    updateConversationTitle,
+    paramModel,
+  ]);
 
   const allMessages = useMemo(() => [
     ...localMessages,

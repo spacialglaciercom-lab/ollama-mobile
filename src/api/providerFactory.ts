@@ -1,11 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 
+import { getSources, createSession as julesCreateSession } from './julesApiService';
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
-  streamChat as ollamaStreamChat
+  streamChat as ollamaStreamChat,
 } from './ollamaClient';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
   ProviderFactoryConfig,
@@ -24,6 +24,7 @@ import {
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
+import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory
