@@ -34,7 +34,11 @@ interface ProviderStore {
   setActiveProvider: (id: string) => void;
   testProviderConnection: (id: string) => Promise<boolean>;
   testAllConnections: () => Promise<Record<string, boolean>>;
-  validateConnection: (type: ProviderConfig['type'], url: string, apiKey: string) => Promise<boolean>;
+  validateConnection: (
+    type: ProviderConfig['type'],
+    url: string,
+    apiKey: string
+  ) => Promise<boolean>;
   saveApiKey: (id: string, apiKey: string) => Promise<void>;
   getApiKey: (id: string) => Promise<string | null>;
   removeApiKey: (id: string) => Promise<void>;
@@ -169,7 +173,9 @@ export const useProviderStore = create<ProviderStore>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           set((state) => ({
-            providers: state.providers.map((p) => (p.id === id ? { ...p, isConnected: false } : p)),
+            providers: state.providers.map((p) =>
+              p.id === id ? ({ ...p, isConnected: false } as ProviderConfig) : p
+            ),
             connectionStatus: {
               ...state.connectionStatus,
               [id]: {
@@ -203,7 +209,9 @@ export const useProviderStore = create<ProviderStore>()(
         if (!provider) throw new Error(`Provider with id ${id} not found`);
         await saveProviderApiKey(provider.type, id, apiKey);
         set((state) => ({
-          providers: state.providers.map((p) => (p.id === id ? { ...p, isConfigured: true } : p)),
+          providers: state.providers.map((p) =>
+            p.id === id ? ({ ...p, isConfigured: true } as ProviderConfig) : p
+          ),
           connectionStatus: {
             ...state.connectionStatus,
             [id]: {
@@ -277,15 +285,16 @@ export const useProviderStore = create<ProviderStore>()(
         setItem: (key, val) => storage.set(key, val),
         removeItem: (key) => storage.delete(key),
       })),
-      partialize: (state: ProviderStore) => ({
-        // Only persist non-sensitive data
-        providers: state.providers.map((p) => {
-          const { apiKey: _, ...rest } = p as any;
-          return { ...rest, apiKey: '' };
-        }) as ProviderConfig[],
-        activeProviderId: state.activeProviderId,
-        connectionStatus: state.connectionStatus,
-      } as any),
+      partialize: (state: ProviderStore) =>
+        ({
+          // Only persist non-sensitive data
+          providers: state.providers.map((p) => {
+            const { apiKey: _, ...rest } = p as any;
+            return { ...rest, apiKey: '' };
+          }) as ProviderConfig[],
+          activeProviderId: state.activeProviderId,
+          connectionStatus: state.connectionStatus,
+        }) as any,
     }
   )
 );

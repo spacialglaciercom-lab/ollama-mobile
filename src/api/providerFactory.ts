@@ -4,7 +4,7 @@ import { getSources, createSession as julesCreateSession } from './julesApiServi
 import {
   fetchModels as ollamaFetchModels,
   pingServer,
-  streamChat as ollamaStreamChat
+  streamChat as ollamaStreamChat,
 } from './ollamaClient';
 import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
@@ -14,6 +14,7 @@ import {
   OllamaLocalProviderConfig,
   ZeroClawProviderConfig,
   JulesProviderConfig,
+  AnyProviderInstance,
   OllamaCloudProviderInstance,
   OllamaLocalProviderInstance,
   ZeroClawProviderInstance,
@@ -25,6 +26,7 @@ import {
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
+import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory

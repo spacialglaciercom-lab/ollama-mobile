@@ -75,21 +75,25 @@ export default function ChatScreen() {
     }
   }, [messages, id]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputText.trim() || streaming) return;
 
     const userText = inputText.trim();
     setInputText('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const currentId = conversationRef.current || '';
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
+
+    // Calculate new local messages for the API call immediately
+    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }
 
-    // Build messages array for API
+    // Build messages array for API using the updated list
     const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
@@ -102,21 +106,27 @@ export default function ChatScreen() {
     apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
-    setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+    streamingContentRef.current = '';
+    setStreamingContent('');
 
     // Call API
     await sendMessage(
       selectedModel || 'llama3',
       apiMessages,
       (content) => {
+        streamingContentRef.current = content;
         setStreamingContent(content);
-        flatListRef.current?.scrollToEnd();
+        flatListRef.current?.scrollToEnd({ animated: false });
       },
       async () => {
         // Done streaming, save assistant message
-        if (streamingContent) {
-          await addMessage(currentId, 'assistant', streamingContent);
+        const finalContent = streamingContentRef.current;
+        if (finalContent) {
+          await addMessage(currentId, 'assistant', finalContent);
           setStreamingContent('');
+          streamingContentRef.current = '';
         }
       }
     );
@@ -238,6 +248,11 @@ export default function ChatScreen() {
             <Text style={styles.emptySub}>Send a message to begin chatting</Text>
           </View>
         }
+        onContentSizeChange={() => {
+          if (streaming) {
+            flatListRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
       />
 
       {/* Token stats */}

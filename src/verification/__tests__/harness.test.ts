@@ -1,5 +1,5 @@
-import { createVerificationHarness } from '../harness';
 import { useDiagnosticsStore } from '../../store/useDiagnosticsStore';
+import { createVerificationHarness } from '../harness';
 
 // Mock useDiagnosticsStore
 jest.mock('../../store/useDiagnosticsStore', () => ({
@@ -30,11 +30,10 @@ describe('createVerificationHarness', () => {
     const result = harness.run();
 
     expect(result).toBe(true);
-    expect(mockInfo).toHaveBeenCalledWith(
-      'Verification',
-      'test-harness: PASSED',
-      { name: 'test-harness', isValid: true }
-    );
+    expect(mockInfo).toHaveBeenCalledWith('Verification', 'test-harness: PASSED', {
+      name: 'test-harness',
+      isValid: true,
+    });
   });
 
   it('should run the algorithm and verify the invariant (FAILED)', () => {
@@ -49,10 +48,9 @@ describe('createVerificationHarness', () => {
     const result = harness.run();
 
     expect(result).toBe(false);
-    expect(mockInfo).toHaveBeenCalledWith(
-      'Verification',
-      'test-harness: FAILED',
-      { name: 'test-harness', isValid: false }
-    );
+    expect(mockInfo).toHaveBeenCalledWith('Verification', 'test-harness: FAILED', {
+      name: 'test-harness',
+      isValid: false,
+    });
   });
 });

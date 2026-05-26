@@ -5,7 +5,12 @@ import { JulesSource, JulesSessionCreateResponse } from '../types';
 global.fetch = jest.fn();
 
 // Helper to mock fetch responses
-const mockFetchResponse = (ok: boolean, status: number, jsonData: any = {}, statusText?: string) => {
+const mockFetchResponse = (
+  ok: boolean,
+  status: number,
+  jsonData: any = {},
+  statusText?: string
+) => {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
     ok,
     status,
@@ -293,7 +298,12 @@ describe('julesApiService', () => {
     });
 
     it('should throw error when sending message fails', async () => {
-      mockFetchResponse(false, 500, { error: { message: 'Internal server error' } }, 'Internal Server Error');
+      mockFetchResponse(
+        false,
+        500,
+        { error: { message: 'Internal server error' } },
+        'Internal Server Error'
+      );
 
       await expect(sendMessage(TEST_API_KEY, 'session-123', 'Hello')).rejects.toThrow(
         'Failed to send message: 500 Internal Server Error'
