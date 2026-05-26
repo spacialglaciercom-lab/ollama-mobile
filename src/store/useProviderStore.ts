@@ -300,6 +300,7 @@ export const useProviderStore = create<ProviderStore>()(
 );
 
 export const useActiveProvider = () => {
-  const { getActiveProvider } = useProviderStore();
-  return useProviderStore(() => getActiveProvider());
+  const providers = useProviderStore((s) => s.providers);
+  const activeProviderId = useProviderStore((s) => s.activeProviderId);
+  return providers.find((p) => p.id === activeProviderId) || null;
 };

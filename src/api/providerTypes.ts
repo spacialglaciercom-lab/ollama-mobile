@@ -267,7 +267,7 @@ export function isOllamaLocalProvider(config: ProviderConfig): config is OllamaL
  * Check if a provider config is ZeroClaw
  */
 export function isZeroClawProvider(config: ProviderConfig): config is ZeroClawProviderConfig {
-  return config.type === 'zeroclaw';
+  return (config as any).type === 'zeroclaw';
 }
 
 /**
@@ -298,10 +298,8 @@ export function isOllamaLocalInstance(
 /**
  * Check if a provider instance is ZeroClaw
  */
-export function isZeroClawInstance(
-  instance: AnyProviderInstance
-): instance is ZeroClawProviderInstance {
-  return instance.config.type === 'zeroclaw';
+export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+  return (instance.config as any).type === 'zeroclaw';
 }
 
 /**

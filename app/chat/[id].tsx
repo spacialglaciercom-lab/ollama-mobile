@@ -1,7 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import * as Haptics from 'expo-haptics';
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, router } from 'expo-router';
 import {
   View,
   FlatList,
@@ -14,6 +11,8 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -29,7 +28,6 @@ import { useProviderStore } from '../../src/store/useProviderStore';
 export default function ChatScreen() {
   const { id, model: paramModel } = useLocalSearchParams<{ id: string; model?: string }>();
   const {
-    conversations,
     messages,
     createConversation,
     addMessage,
@@ -37,7 +35,7 @@ export default function ChatScreen() {
     loadMessages,
     updateConversationTitle,
   } = useChatStore();
-  const { selectedModel, selectModel } = useModelStore();
+  const { selectedModel } = useModelStore();
   const activeProvider = useProviderStore((s) => s.getActiveProvider());
   const { sendMessage, streaming } = useOllamaStream();
 
@@ -53,8 +51,7 @@ export default function ChatScreen() {
   const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
-  const conversationRef = useRef<string | null>(id !== 'new' ? id : null);
-  const streamingContentRef = useRef('');
+  const conversationRef = useRef<string | null>(null);
 
   // Initialize chat
   useEffect(() => {
@@ -85,8 +82,7 @@ export default function ChatScreen() {
     setInputText('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    let currentId = id === 'new' ? '' : id;
-    const convId = currentId; // Assuming currentId is the conversation ID
+    const currentId = conversationRef.current || '';
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
@@ -102,9 +98,12 @@ export default function ChatScreen() {
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
-    updatedLocalMessages
+
+    localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
+
+    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -136,21 +135,9 @@ export default function ChatScreen() {
     const conv = useChatStore.getState().conversations.find((c) => c.id === currentId);
     if (conv && conv.title === 'New Chat') {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
-      updateConversationTitle(convId, title);
+      updateConversationTitle(currentId, title);
     }
-  }, [
-    inputText,
-    streaming,
-    id,
-    addMessage,
-    localMessages,
-    showSystemPrompt,
-    systemPromptText,
-    selectedModel,
-    sendMessage,
-    updateConversationTitle,
-    paramModel,
-  ]);
+  };
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -172,15 +159,11 @@ export default function ChatScreen() {
       return <StreamingBubble content={item.content} />;
     }
     return (
-      <TouchableOpacity
-        onLongPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          setSelectedMessage(item);
-        }}
-        activeOpacity={0.9}
-      >
-        <MessageBubble message={item} />
-      </TouchableOpacity>
+      <MessageBubble
+        role={item.role}
+        content={item.content}
+        onLongPress={() => setSelectedMessage(item)}
+      />
     );
   }, []);
 
@@ -188,7 +171,7 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={0}
     >
       <StatusBar style="light" />
 
