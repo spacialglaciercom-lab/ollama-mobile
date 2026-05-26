@@ -34,7 +34,11 @@ interface ProviderStore {
   setActiveProvider: (id: string) => void;
   testProviderConnection: (id: string) => Promise<boolean>;
   testAllConnections: () => Promise<Record<string, boolean>>;
-  validateConnection: (type: ProviderConfig['type'], url: string, apiKey: string) => Promise<boolean>;
+  validateConnection: (
+    type: ProviderConfig['type'],
+    url: string,
+    apiKey: string
+  ) => Promise<boolean>;
   saveApiKey: (id: string, apiKey: string) => Promise<void>;
   getApiKey: (id: string) => Promise<string | null>;
   removeApiKey: (id: string) => Promise<void>;
@@ -64,13 +68,13 @@ export const useProviderStore = create<ProviderStore>()(
           await saveProviderApiKey(newConfig.type, newConfig.id, config.apiKey);
           const isConnected = await testConnectionWithKey(
             newConfig.type,
-            factoryConfig.url ||
+            config.url ||
               (newConfig.type === 'ollama-cloud'
                 ? DEFAULT_OLLAMA_CLOUD_PROVIDER.url
                 : newConfig.type === 'ollama-local'
                   ? DEFAULT_OLLAMA_LOCAL_PROVIDER.url
                   : ''),
-            factoryConfig.apiKey
+            config.apiKey
           );
           newConfig.isConnected = isConnected;
           if (isConnected) {
@@ -128,7 +132,7 @@ export const useProviderStore = create<ProviderStore>()(
           providers: newProviders,
           activeProviderId: newActiveId,
           connectionStatus: newConnectionStatus,
-        }));
+        });
       },
 
       setActiveProvider: (id: string) => {
@@ -145,12 +149,12 @@ export const useProviderStore = create<ProviderStore>()(
           set((state) => ({
             providers: state.providers.map((p) =>
               p.id === id
-                ? {
+                ? ({
                     ...p,
                     isConnected,
                     isConfigured: true,
                     lastConnectionTest: isConnected ? Date.now() : p.lastConnectionTest,
-                  } as ProviderConfig
+                  } as ProviderConfig)
                 : p
             ),
             connectionStatus: {
@@ -226,7 +230,7 @@ export const useProviderStore = create<ProviderStore>()(
         await removeProviderApiKey(provider.type, id);
         set((state) => ({
           providers: state.providers.map((p) =>
-            p.id === id ? { ...p, isConfigured: false, isConnected: false } as ProviderConfig : p
+            p.id === id ? ({ ...p, isConfigured: false, isConnected: false } as ProviderConfig) : p
           ),
         }));
       },
@@ -277,20 +281,22 @@ export const useProviderStore = create<ProviderStore>()(
         setItem: (key, val) => storage.set(key, val),
         removeItem: (key) => storage.delete(key),
       })),
-      partialize: (state: ProviderStore) => ({
-        // Only persist non-sensitive data
-        providers: state.providers.map((p) => {
-          const { apiKey: _, ...rest } = p as any;
-          return { ...rest, apiKey: '' };
-        }) as ProviderConfig[],
-        activeProviderId: state.activeProviderId,
-        connectionStatus: state.connectionStatus,
-      } as any),
+      partialize: (state: ProviderStore) =>
+        ({
+          // Only persist non-sensitive data
+          providers: state.providers.map((p) => {
+            const { apiKey: _, ...rest } = p as any;
+            return { ...rest, apiKey: '' };
+          }) as ProviderConfig[],
+          activeProviderId: state.activeProviderId,
+          connectionStatus: state.connectionStatus,
+        }) as any,
     }
   )
 );
 
 export const useActiveProvider = () => {
-  const { getActiveProvider } = useProviderStore();
-  return useProviderStore(() => getActiveProvider());
+  const providers = useProviderStore((s) => s.providers);
+  const activeProviderId = useProviderStore((s) => s.activeProviderId);
+  return providers.find((p) => p.id === activeProviderId) || null;
 };

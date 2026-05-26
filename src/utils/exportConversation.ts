@@ -11,10 +11,10 @@ export async function exportConversationAsMarkdown(
   const markdown = conversationToMarkdown(conversation, messages);
 
   // Write to file and share
-  const filename = conversation.title.replace(/[^a-z0-9]/gi, '_') + "_" + date + ".md";
+  const filename = conversation.title.replace(/[^a-z0-9]/gi, '_') + '_' + date + '.md';
   const docDir = (FileSystem as any).documentDirectory || '';
   const fileUri = docDir + filename;
-  
+
   await FileSystem.writeAsStringAsync(fileUri, markdown, {
     encoding: (FileSystem as any).EncodingType?.UTF8 || 'utf8',
   });
@@ -33,13 +33,13 @@ export function conversationToMarkdown(
   const date = new Date(conversation.createdAt).toISOString().split('T')[0];
   const blocks: string[] = [];
 
-  blocks.push("# " + conversation.title + "\n\n");
-  blocks.push("**Date:** " + date + "  \n");
-  blocks.push("**Model:** " + conversation.model + "\n\n");
-  blocks.push("---\n\n");
+  blocks.push('# ' + conversation.title + '\n\n');
+  blocks.push('**Date:** ' + date + '  \n');
+  blocks.push('**Model:** ' + conversation.model + '\n\n');
+  blocks.push('---\n\n');
 
   if (conversation.systemPrompt) {
-    blocks.push("**System Prompt:**\n\n" + conversation.systemPrompt + "\n\n---\n\n");
+    blocks.push('**System Prompt:**\n\n' + conversation.systemPrompt + '\n\n---\n\n');
   }
 
   for (const msg of messages) {
@@ -51,8 +51,8 @@ export function conversationToMarkdown(
       minute: '2-digit',
     });
 
-    blocks.push("### " + roleLabel + " — " + time + "\n\n");
-    blocks.push(msg.content + "\n\n");
+    blocks.push('### ' + roleLabel + ' — ' + time + '\n\n');
+    blocks.push(msg.content + '\n\n');
   }
 
   return blocks.join('');
