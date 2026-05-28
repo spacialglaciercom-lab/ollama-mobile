@@ -78,9 +78,9 @@ export default function ChatScreen() {
   }, [messages, id]);
 
   const handleSend = useCallback(async () => {
-    if (!inputText.trim() || streaming) return;
-
     const userText = inputText.trim();
+    if (!userText || streaming) return;
+
     setInputText('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
