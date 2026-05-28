@@ -12,4 +12,4 @@ jobs:
           node-version: 20
       - run: npm ci --legacy-peer-deps
       - run: npm run lint
-      - run: npx tsc --noEmit
+      - run: npm run typecheck

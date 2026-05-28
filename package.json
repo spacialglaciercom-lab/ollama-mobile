@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "./node_modules/.bin/eslint . --ext .ts,.tsx --config .eslintrc.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "./node_modules/.bin/tsc --noEmit",
     "test": "jest --config jest.config.js"
   },
   "dependencies": {
