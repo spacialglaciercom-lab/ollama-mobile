@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import { MMKV } from 'react-native-mmkv';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -69,7 +70,7 @@ export const useChatStore = create<ChatStore>()(
 
       createConversation: async (title, model, systemPrompt) => {
         const conversation: Conversation = {
-          id: `conv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          id: `conv-${Crypto.randomUUID()}`,
           title,
           model,
           systemPrompt,
@@ -129,7 +130,7 @@ export const useChatStore = create<ChatStore>()(
 
       addMessage: async (conversationId, role, content) => {
         const message: StoredMessage = {
-          id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          id: `msg-${Crypto.randomUUID()}`,
           conversationId,
           role,
           content,
