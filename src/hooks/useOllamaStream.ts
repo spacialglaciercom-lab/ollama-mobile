@@ -9,7 +9,7 @@ interface UseOllamaStreamReturn {
     model: string,
     messages: { role: string; content: string }[],
     onContent: (fullContent: string) => void,
-    onDone: () => void
+    onDone: (stats?: { promptEval: number; eval: number }) => void
   ) => Promise<void>;
   streaming: boolean;
   error: string | null;
@@ -24,7 +24,7 @@ export function useOllamaStream(): UseOllamaStreamReturn {
       model: string,
       messages: { role: string; content: string }[],
       onContent: (fullContent: string) => void,
-      onDone: () => void
+      onDone: (stats?: { promptEval: number; eval: number }) => void
     ) => {
       const provider = useProviderStore.getState().getActiveProvider();
       if (!provider) {
@@ -64,7 +64,9 @@ export function useOllamaStream(): UseOllamaStreamReturn {
           throw new Error(`Provider type ${provider.type} does not support streaming chat yet`);
         }
 
+        let lastChunk: any = null;
         for await (const chunk of gen) {
+          lastChunk = chunk;
           if (chunk.message?.content) {
             fullContent += chunk.message.content;
             onContent(fullContent);
@@ -73,7 +75,14 @@ export function useOllamaStream(): UseOllamaStreamReturn {
         }
 
         setStreaming(false);
-        onDone();
+        const stats =
+          lastChunk?.prompt_eval_count || lastChunk?.eval_count
+            ? {
+                promptEval: lastChunk.prompt_eval_count || 0,
+                eval: lastChunk.eval_count || 0,
+              }
+            : undefined;
+        onDone(stats);
       } catch (err: any) {
         console.error('Chat stream error:', err);
         setError(err?.message ?? 'Stream failed');
