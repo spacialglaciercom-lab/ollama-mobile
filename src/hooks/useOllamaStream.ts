@@ -9,7 +9,7 @@ interface UseOllamaStreamReturn {
     model: string,
     messages: { role: string; content: string }[],
     onContent: (fullContent: string) => void,
-    onDone: () => void
+    onDone: (stats?: { promptEval: number; eval: number }) => void
   ) => Promise<void>;
   streaming: boolean;
   error: string | null;
@@ -24,7 +24,7 @@ export function useOllamaStream(): UseOllamaStreamReturn {
       model: string,
       messages: { role: string; content: string }[],
       onContent: (fullContent: string) => void,
-      onDone: () => void
+      onDone: (stats?: { promptEval: number; eval: number }) => void
     ) => {
       const provider = useProviderStore.getState().getActiveProvider();
       if (!provider) {
@@ -40,6 +40,7 @@ export function useOllamaStream(): UseOllamaStreamReturn {
 
       try {
         let gen;
+        let lastStats: { promptEval: number; eval: number } | undefined;
         const apiKey = await useProviderStore.getState().getApiKey(provider.id);
 
         if (provider.type === 'zeroclaw') {
@@ -69,11 +70,19 @@ export function useOllamaStream(): UseOllamaStreamReturn {
             fullContent += chunk.message.content;
             onContent(fullContent);
           }
+
+          if (chunk.prompt_eval_count !== undefined && chunk.eval_count !== undefined) {
+            lastStats = {
+              promptEval: chunk.prompt_eval_count,
+              eval: chunk.eval_count,
+            };
+          }
+
           if (chunk.done) break;
         }
 
         setStreaming(false);
-        onDone();
+        onDone(lastStats);
       } catch (err: any) {
         console.error('Chat stream error:', err);
         setError(err?.message ?? 'Stream failed');
