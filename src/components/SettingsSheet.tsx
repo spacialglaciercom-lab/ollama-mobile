@@ -26,10 +26,12 @@ interface SettingsSheetProps {
 export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
     useServerStore();
+  const [autoDeleteInput, setAutoDeleteInput] = useState(
+    String(useChatStore.getState().autoDeleteDays)
+  );
   const {
     autoSaveEnabled,
     setAutoSave,
-    autoDeleteDays,
     setAutoDeleteDays,
     cleanupOldConversations,
   } = useChatStore();
