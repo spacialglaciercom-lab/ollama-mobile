@@ -46,6 +46,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [enabled, setEnabled] = useState(true);
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
 
   const openAdd = () => {
     setEditingServer(null);
@@ -238,8 +239,8 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
                     onBlur={() => {
                       const days = parseInt(autoDeleteInput, 10);
                       if (isNaN(days)) {
-                        setAutoDeleteInput('0');
-                        setAutoDeleteDays(0);
+                        const defaultVal = String(autoDeleteDays);
+                        setAutoDeleteInput(defaultVal);
                       }
                     }}
                     keyboardType="number-pad"
