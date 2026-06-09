@@ -11,7 +11,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -49,10 +48,10 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
+  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
-  const streamingContentRef = useRef<string>('');
 
   // Initialize chat
   useEffect(() => {
@@ -100,9 +99,11 @@ export default function ChatScreen() {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
 
-    updatedLocalMessages
+    localMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
+
+    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -136,18 +137,7 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  }, [
-    inputText,
-    streaming,
-    addMessage,
-    localMessages,
-    id,
-    showSystemPrompt,
-    systemPromptText,
-    sendMessage,
-    selectedModel,
-    updateConversationTitle,
-  ]);
+  };
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -170,7 +160,8 @@ export default function ChatScreen() {
     }
     return (
       <MessageBubble
-        message={item}
+        role={item.role}
+        content={item.content}
         onLongPress={() => setSelectedMessage(item)}
       />
     );
@@ -264,6 +255,14 @@ export default function ChatScreen() {
         }}
       />
 
+      {/* Token stats */}
+      {tokenStats && !streaming && (
+        <View style={styles.tokenBar}>
+          <Text style={styles.tokenText}>
+            Prompt: {tokenStats.promptEval} · Response: {tokenStats.eval}
+          </Text>
+        </View>
+      )}
 
       {/* System prompt area */}
       {showSystemPrompt && (
