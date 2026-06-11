@@ -64,14 +64,14 @@ export default function JulesSettingsSheet({
       setApiKeyInputs(inputs);
     };
     loadApiKeys();
-  }, [providers]);
+  }, [providers, getApiKey]);
 
   // Test all connections on mount
   useEffect(() => {
     if (providers.length > 0) {
       testAllConnections();
     }
-  }, []);
+  }, [providers.length, testAllConnections]);
 
   const handleAddProvider = async () => {
     if (!newProviderApiKey.trim()) {

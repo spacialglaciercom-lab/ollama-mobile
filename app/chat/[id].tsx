@@ -152,20 +152,23 @@ export default function ChatScreen() {
     updateConversationTitle,
   ]);
 
-  const allMessages = useMemo(() => [
-    ...localMessages,
-    ...(streamingContent
-      ? [
-          {
-            id: 'streaming',
-            conversationId: conversationRef.current ?? '',
-            role: 'assistant' as const,
-            content: streamingContent,
-            createdAt: Date.now(),
-          },
-        ]
-      : []),
-  ], [localMessages, streamingContent]);
+  const allMessages = useMemo(
+    () => [
+      ...localMessages,
+      ...(streamingContent
+        ? [
+            {
+              id: 'streaming',
+              conversationId: conversationRef.current ?? '',
+              role: 'assistant' as const,
+              content: streamingContent,
+              createdAt: Date.now(),
+            },
+          ]
+        : []),
+    ],
+    [localMessages, streamingContent]
+  );
 
   const renderItem = useCallback(({ item }: { item: any }) => {
     if (item.id === 'streaming') {
@@ -269,7 +272,6 @@ export default function ChatScreen() {
           }
         }}
       />
-
 
       {/* System prompt area */}
       {showSystemPrompt && (

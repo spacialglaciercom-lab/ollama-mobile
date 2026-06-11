@@ -35,7 +35,6 @@ export function CommitSheet({
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
   const handleCommit = async () => {
     if (!message.trim()) return;
     setWorking(true);
