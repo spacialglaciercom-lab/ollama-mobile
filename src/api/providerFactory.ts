@@ -319,9 +319,10 @@ export class ProviderFactory {
           return await pingServer(url, apiKey);
         case 'zeroclaw':
           return await pingZeroClaw(url, apiKey);
-        case 'jules':
+        case 'jules': {
           const sources = await getSources(apiKey);
           return Array.isArray(sources);
+        }
         default:
           return false;
       }
