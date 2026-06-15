@@ -35,7 +35,6 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   } = useChatStore();
 
   const [showForm, setShowForm] = useState(false);
-  const [autoDeleteInput, setAutoDeleteInput] = useState(autoDeleteDays.toString());
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
@@ -129,10 +128,6 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     if (server.id === 'ollama-cloud') return;
     removeServer(server.id);
   };
-
-  React.useEffect(() => {
-    setAutoDeleteInput(autoDeleteDays.toString());
-  }, [autoDeleteDays]);
 
   const renderServer = ({ item }: { item: Server }) => (
     <TouchableOpacity
