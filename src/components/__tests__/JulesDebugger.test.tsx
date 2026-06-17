@@ -1,9 +1,10 @@
-import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import React from 'react';
 import { Alert } from 'react-native';
-import { JulesDebugger } from '../JulesDebugger';
+
 import { useJulesSettingsStore } from '../../store/useJulesSettingsStore';
 import { useProviderStore } from '../../store/useProviderStore';
+import { JulesDebugger } from '../JulesDebugger';
 
 // Mock the stores
 jest.mock('../../store/useJulesSettingsStore');
