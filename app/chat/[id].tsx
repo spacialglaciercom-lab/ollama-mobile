@@ -11,6 +11,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -48,10 +49,10 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
   // Initialize chat
   useEffect(() => {
@@ -80,17 +81,22 @@ export default function ChatScreen() {
 
     const userText = inputText.trim();
     setInputText('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const currentId = conversationRef.current || '';
 
     // Add user message
-    const userMsg = await addMessage(currentId, 'user', userText);
+    await addMessage(currentId, 'user', userText);
 
-    // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
-      setLocalMessages([userMsg]);
+      const userMsgStub: StoredMessage = {
+        id: 'temp-' + Date.now(),
+        conversationId: currentId,
+        role: 'user',
+        content: userText,
+        createdAt: Date.now(),
+      };
+      setLocalMessages([userMsgStub]);
     }
 
     // Build messages array for API using the updated list
@@ -137,7 +143,18 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    selectedModel,
+    sendMessage,
+    addMessage,
+    updateConversationTitle,
+  ]);
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -158,13 +175,7 @@ export default function ChatScreen() {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
-    return (
-      <MessageBubble
-        role={item.role}
-        content={item.content}
-        onLongPress={() => setSelectedMessage(item)}
-      />
-    );
+    return <MessageBubble message={item} onLongPress={() => setSelectedMessage(item)} />;
   }, []);
 
   return (
@@ -255,14 +266,6 @@ export default function ChatScreen() {
         }}
       />
 
-      {/* Token stats */}
-      {tokenStats && !streaming && (
-        <View style={styles.tokenBar}>
-          <Text style={styles.tokenText}>
-            Prompt: {tokenStats.promptEval} · Response: {tokenStats.eval}
-          </Text>
-        </View>
-      )}
 
       {/* System prompt area */}
       {showSystemPrompt && (
