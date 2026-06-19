@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
 
-import { useServerStore, buildServerUrl } from '../store/useServerStore';
+import { buildServerUrl } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
 
 interface ModelPullSheetProps {
   visible: boolean;
@@ -10,7 +11,7 @@ interface ModelPullSheetProps {
 }
 
 export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetProps) {
-  const activeServer = useServerStore((s) => s.getActiveServer());
+  const activeProvider = useProviderStore((s) => s.getActiveProvider());
   const [searchText, setSearchText] = useState('');
   const [pulling, setPulling] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -19,7 +20,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
   const abortRef = useRef<AbortController | null>(null);
 
   const handlePull = async (modelName: string) => {
-    if (!activeServer || pulling) return;
+    if (!activeProvider || pulling || activeProvider.type === 'jules') return;
 
     setPulling(modelName);
     setProgress(0);
@@ -27,7 +28,10 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
     setError(null);
 
     try {
-      const cleanUrl = buildServerUrl(activeServer).replace(/\/+$/, '');
+      // Convert provider to legacy server format for compatibility
+      const apiKey = await useProviderStore.getState().getApiKey(activeProvider.id);
+      const server = { ...activeProvider, apiKey } as any;
+      const cleanUrl = buildServerUrl(server).replace(/\/+$/, '');
       const url = `${cleanUrl}/api/pull`;
 
       abortRef.current = new AbortController();
@@ -36,7 +40,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(activeServer.apiKey ? { Authorization: `Bearer ${activeServer.apiKey}` } : {}),
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         },
         body: JSON.stringify({ name: modelName, stream: true }),
         signal: abortRef.current.signal,

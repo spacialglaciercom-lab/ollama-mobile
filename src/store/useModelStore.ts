@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-import { useServerStore, buildServerUrl } from './useServerStore';
+import { buildServerUrl } from './useServerStore';
+import { useProviderStore } from './useProviderStore';
 import { fetchModels as apiFetchModels } from '../api/ollamaClient';
 
 interface ModelInfo {
@@ -32,7 +33,18 @@ export const useModelStore = create<ModelStore>((set) => ({
   error: null,
 
   fetchModels: async () => {
-    const server = useServerStore.getState().getActiveServer();
+    const activeProvider = useProviderStore.getState().getActiveProvider();
+    if (!activeProvider || activeProvider.type === 'jules') {
+      set({ error: 'No active Ollama server', loading: false });
+      return;
+    }
+
+    // Convert provider to legacy server format for compatibility
+    const server = {
+      ...activeProvider,
+      apiKey: await useProviderStore.getState().getApiKey(activeProvider.id),
+    } as any;
+
     if (!server) {
       set({ error: 'No active server', loading: false });
       return;
