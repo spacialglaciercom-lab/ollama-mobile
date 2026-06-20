@@ -89,7 +89,6 @@ export default function ChatScreen() {
     const userMsg = await addMessage(currentId, 'user', userText);
 
     // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }

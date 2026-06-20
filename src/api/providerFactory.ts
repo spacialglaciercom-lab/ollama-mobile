@@ -202,7 +202,9 @@ export class ProviderFactory {
     };
   }
 
-  private static createZeroClawProvider(config: ZeroClawProviderConfig): ZeroClawProviderInstance {
+  private static createZeroClawProvider(
+    config: ZeroClawProviderConfig
+  ): ZeroClawProviderInstance {
     return {
       config,
       testConnection: async () => {
