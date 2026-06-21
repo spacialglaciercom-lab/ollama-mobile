@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,8 +14,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -52,6 +53,7 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
   // Initialize chat
   useEffect(() => {
@@ -87,8 +89,8 @@ export default function ChatScreen() {
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
 
-    // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
+    const currentMessages = id === 'new' ? [userMsg] : [...localMessages, userMsg];
+
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }
@@ -99,11 +101,9 @@ export default function ChatScreen() {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });
     }
 
-    localMessages
+    currentMessages
       .filter((msg) => msg.role !== 'system')
       .forEach((msg) => apiMessages.push({ role: msg.role, content: msg.content }));
-
-    apiMessages.push({ role: 'user', content: userText });
 
     // Scroll to bottom
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -137,7 +137,19 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    selectedModel,
+    sendMessage,
+    addMessage,
+    updateConversationTitle,
+    setTokenStats,
+  ]);
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -158,13 +170,7 @@ export default function ChatScreen() {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
-    return (
-      <MessageBubble
-        role={item.role}
-        content={item.content}
-        onLongPress={() => setSelectedMessage(item)}
-      />
-    );
+    return <MessageBubble message={item} onLongPress={() => setSelectedMessage(item)} />;
   }, []);
 
   return (
