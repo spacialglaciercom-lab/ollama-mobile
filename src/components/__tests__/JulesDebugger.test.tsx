@@ -25,14 +25,14 @@ describe('JulesDebugger', () => {
 
     // Mock the hook to return the state directly
     (useProviderStore as unknown as jest.Mock).mockImplementation((selector) => {
-        if (typeof selector === 'function') {
-            return selector({
-                getActiveProvider: () => ({ name: 'Test Provider', type: 'jules' })
-            });
-        }
-        return {
-            getActiveProvider: () => ({ name: 'Test Provider', type: 'jules' })
-        };
+      if (typeof selector === 'function') {
+        return selector({
+          getActiveProvider: () => ({ name: 'Test Provider', type: 'jules' }),
+        });
+      }
+      return {
+        getActiveProvider: () => ({ name: 'Test Provider', type: 'jules' }),
+      };
     });
   });
 
