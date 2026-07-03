@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Clipboard, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Clipboard } from 'react-native';
 
 interface MessageActionSheetProps {
   visible: boolean;
