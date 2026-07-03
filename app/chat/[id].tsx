@@ -1,18 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
+  Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Pressable,
-  Alert,
+  View,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -42,16 +43,21 @@ export default function ChatScreen() {
   const [streamingContent, setStreamingContent] = useState('');
   const [localMessages, setLocalMessages] = useState<StoredMessage[]>([]);
   const [inputText, setInputText] = useState('');
+  const inputTextRef = useRef('');
+
+  useEffect(() => {
+    inputTextRef.current = inputText;
+  }, [inputText]);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
   // Initialize chat
   useEffect(() => {
@@ -76,9 +82,9 @@ export default function ChatScreen() {
   }, [messages, id]);
 
   const handleSend = useCallback(async () => {
-    if (!inputText.trim() || streaming) return;
+    const userText = inputTextRef.current.trim();
+    if (!userText || streaming) return;
 
-    const userText = inputText.trim();
     setInputText('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -137,7 +143,17 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    streaming,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    selectedModel,
+    sendMessage,
+    addMessage,
+    updateConversationTitle,
+  ]);
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -160,8 +176,7 @@ export default function ChatScreen() {
     }
     return (
       <MessageBubble
-        role={item.role}
-        content={item.content}
+        message={item}
         onLongPress={() => setSelectedMessage(item)}
       />
     );
@@ -254,15 +269,6 @@ export default function ChatScreen() {
           }
         }}
       />
-
-      {/* Token stats */}
-      {tokenStats && !streaming && (
-        <View style={styles.tokenBar}>
-          <Text style={styles.tokenText}>
-            Prompt: {tokenStats.promptEval} · Response: {tokenStats.eval}
-          </Text>
-        </View>
-      )}
 
       {/* System prompt area */}
       {showSystemPrompt && (
