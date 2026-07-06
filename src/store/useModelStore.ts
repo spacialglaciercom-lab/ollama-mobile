@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 
-import { useServerStore, buildServerUrl } from './useServerStore';
+import { useProviderStore } from './useProviderStore';
 import { fetchModels as apiFetchModels } from '../api/ollamaClient';
+import { isJulesProvider, isZeroClawProvider } from '../api/providerTypes';
 
 interface ModelInfo {
   name: string;
@@ -32,15 +33,15 @@ export const useModelStore = create<ModelStore>((set) => ({
   error: null,
 
   fetchModels: async () => {
-    const server = useServerStore.getState().getActiveServer();
-    if (!server) {
-      set({ error: 'No active server', loading: false });
+    const provider = useProviderStore.getState().getActiveProvider();
+    if (!provider) {
+      set({ error: 'No active provider', loading: false });
       return;
     }
 
     set({ loading: true, error: null });
 
-    if (server.type === 'zeroclaw') {
+    if (isZeroClawProvider(provider)) {
       set({
         models: [
           {
@@ -63,8 +64,32 @@ export const useModelStore = create<ModelStore>((set) => ({
       return;
     }
 
+    if (isJulesProvider(provider)) {
+      set({
+        models: [
+          {
+            name: 'Jules Agent',
+            size: 0,
+            digest: 'jules',
+            modified_at: new Date().toISOString(),
+            model: 'jules',
+            format: 'jules',
+            family: 'jules',
+            families: ['jules'],
+            parameter_size: 'unknown',
+            quantization_level: 'none',
+          },
+        ] as any,
+        selectedModel: 'Jules Agent',
+        loading: false,
+        error: null,
+      });
+      return;
+    }
+
     try {
-      const response = await apiFetchModels(buildServerUrl(server), server.apiKey);
+      const apiKey = await useProviderStore.getState().getApiKey(provider.id);
+      const response = await apiFetchModels((provider as any).url, apiKey ?? undefined);
       set({
         models: response.models as ModelInfo[],
         loading: false,

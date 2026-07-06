@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
 
-import { useServerStore, buildServerUrl } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
 
 interface ModelPullSheetProps {
   visible: boolean;
@@ -10,7 +10,7 @@ interface ModelPullSheetProps {
 }
 
 export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetProps) {
-  const activeServer = useServerStore((s) => s.getActiveServer());
+  const activeProvider = useProviderStore((s) => s.getActiveProvider());
   const [searchText, setSearchText] = useState('');
   const [pulling, setPulling] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -19,7 +19,7 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
   const abortRef = useRef<AbortController | null>(null);
 
   const handlePull = async (modelName: string) => {
-    if (!activeServer || pulling) return;
+    if (!activeProvider || pulling || activeProvider.type === 'jules') return;
 
     setPulling(modelName);
     setProgress(0);
@@ -27,16 +27,16 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
     setError(null);
 
     try {
-      const cleanUrl = buildServerUrl(activeServer).replace(/\/+$/, '');
-      const url = `${cleanUrl}/api/pull`;
+      const url = `${(activeProvider as any).url}/api/pull`.replace(/\/+$/, '');
 
       abortRef.current = new AbortController();
+      const apiKey = await useProviderStore.getState().getApiKey(activeProvider.id);
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(activeServer.apiKey ? { Authorization: `Bearer ${activeServer.apiKey}` } : {}),
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         },
         body: JSON.stringify({ name: modelName, stream: true }),
         signal: abortRef.current.signal,

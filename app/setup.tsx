@@ -3,12 +3,12 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 
-import { pingServer, fetchModels as apiFetchModels } from '../src/api/ollamaClient';
+import { pingServer, fetchModels as apiFetchModels, buildServerUrl, parseLegacyUrl } from '../src/api/ollamaClient';
 import { useModelStore } from '../src/store/useModelStore';
-import { useServerStore, buildServerUrl, parseLegacyUrl } from '../src/store/useServerStore';
+import { useProviderStore } from '../src/store/useProviderStore';
 
 export default function SetupScreen() {
-  const { servers, activeServerId, addServer, updateServer, setActive } = useServerStore();
+  const { providers, activeProviderId, addProvider, updateProvider, setActiveProvider } = useProviderStore();
   const { fetchModels } = useModelStore();
 
   const [url, setUrl] = useState('');
@@ -17,14 +17,14 @@ export default function SetupScreen() {
   const [modelCount, setModelCount] = useState(0);
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  // Pre-fill if Ollama Cloud server exists
+  // Pre-fill if Ollama Cloud provider exists
   useEffect(() => {
-    const cloud = servers.find((s) => s.isCloud);
+    const cloud = providers.find((p) => p.type === 'ollama-cloud');
     if (cloud) {
-      setUrl(buildServerUrl(cloud));
-      setApiKey(cloud.apiKey ?? '');
+      setUrl((cloud as any).url);
+      useProviderStore.getState().getApiKey(cloud.id).then(key => setApiKey(key ?? ''));
     }
-  }, []);
+  }, [providers]);
 
   const handleConnect = async () => {
     if (!url.trim()) return;
@@ -37,35 +37,25 @@ export default function SetupScreen() {
 
     // Parse URL into new server fields
     const parsed = parseLegacyUrl(url.trim());
-    const serverUrl = buildServerUrl({
-      ...parsed,
-      id: '',
-      name: '',
-      enabled: true,
-      isCloud: false,
-      type: 'ollama',
-    });
+    const serverUrl = buildServerUrl(parsed);
 
     // Ping the server
     const ok = await pingServer(serverUrl, key);
 
     if (ok) {
-      // Save or update server
-      const existing = servers.find((s) => buildServerUrl(s) === serverUrl);
+      // Save or update provider
+      const existing = providers.find((p) => (p as any).url === serverUrl);
       if (existing) {
-        if (key) updateServer(existing.id, { apiKey: key });
-        setActive(existing.id);
+        if (key) {
+          await useProviderStore.getState().saveApiKey(existing.id, key);
+        }
+        setActiveProvider(existing.id);
       } else {
-        addServer({
+        await addProvider({
           name: isCloud ? 'Ollama Cloud' : 'My Server',
-          host: parsed.host,
-          port: parsed.port,
-          tls: parsed.tls,
-          pathPrefix: parsed.pathPrefix,
+          type: isCloud ? 'ollama-cloud' : 'ollama-local',
+          url: serverUrl,
           apiKey: key,
-          enabled: true,
-          isCloud,
-          type: 'ollama',
         });
       }
 
@@ -76,8 +66,7 @@ export default function SetupScreen() {
         setStatus('success');
 
         // Also update the model store
-        const activeServer = useServerStore.getState().getActiveServer();
-        if (activeServer) fetchModels();
+        fetchModels();
 
         Animated.timing(opacityAnim, {
           toValue: 1,
@@ -94,7 +83,7 @@ export default function SetupScreen() {
   };
 
   // If already connected, skip to main
-  if (activeServerId && servers.find((s) => s.id === activeServerId)) {
+  if (activeProviderId && providers.find((p) => p.id === activeProviderId)) {
     // Don't auto-redirect — let user re-configure if they want
   }
 

@@ -6,7 +6,7 @@ import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { ConversationList } from '../src/components/ConversationList';
 import { useChatStore } from '../src/store/useChatStore';
 import { useModelStore } from '../src/store/useModelStore';
-import { useServerStore } from '../src/store/useServerStore';
+import { useProviderStore } from '../src/store/useProviderStore';
 import { exportConversationAsMarkdown } from '../src/utils/exportConversation';
 
 type Tab = 'chats' | 'repos';
@@ -21,14 +21,14 @@ export default function HomeScreen() {
     messages,
   } = useChatStore();
   const { selectedModel, fetchModels } = useModelStore();
-  const activeServer = useServerStore((s) => s.getActiveServer());
+  const activeProvider = useProviderStore((s) => s.getActiveProvider());
   const [tab, setTab] = useState<Tab>('chats');
 
   useEffect(() => {
     loadConversations();
     cleanupOldConversations();
-    if (activeServer) fetchModels();
-  }, [activeServer, fetchModels, loadConversations, cleanupOldConversations]);
+    if (activeProvider) fetchModels();
+  }, [activeProvider, fetchModels, loadConversations, cleanupOldConversations]);
 
   const handleNewChat = () => {
     router.push({

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   View,
@@ -11,12 +11,10 @@ import {
   Switch,
 } from 'react-native';
 
-import { getSources } from '../api/julesApiService';
-import { pingServer } from '../api/ollamaClient';
-import { ServerType } from '../api/types';
-import { pingZeroClaw } from '../api/zeroclawClient';
+import { buildServerUrl, parseLegacyUrl } from '../api/ollamaClient';
+import { ProviderConfig, ProviderType } from '../api/providerTypes';
 import { useChatStore } from '../store/useChatStore';
-import { useServerStore, Server, buildServerUrl } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -24,8 +22,16 @@ interface SettingsSheetProps {
 }
 
 export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
-  const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
-    useServerStore();
+  const {
+    providers,
+    activeProviderId,
+    addProvider,
+    updateProvider,
+    removeProvider,
+    setActiveProvider,
+    testProviderConnection,
+    getApiKey,
+  } = useProviderStore();
   const {
     autoSaveEnabled,
     setAutoSave,
@@ -35,20 +41,24 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   } = useChatStore();
 
   const [showForm, setShowForm] = useState(false);
-  const [editingServer, setEditingServer] = useState<Server | null>(null);
+  const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
   const [tls, setTls] = useState(false);
   const [pathPrefix, setPathPrefix] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [type, setType] = useState<ServerType>('ollama');
-  const [enabled, setEnabled] = useState(true);
+  const [type, setType] = useState<'ollama' | 'zeroclaw' | 'jules'>('ollama');
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
+
+  useEffect(() => {
+    setAutoDeleteInput(String(autoDeleteDays));
+  }, [autoDeleteDays]);
 
   const openAdd = () => {
-    setEditingServer(null);
+    setEditingProvider(null);
     setName('');
     setHost('');
     setPort('11434');
@@ -56,87 +66,100 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
     setPathPrefix('');
     setApiKey('');
     setType('ollama');
-    setEnabled(true);
     setShowForm(true);
   };
 
-  const openEdit = (server: Server) => {
-    setEditingServer(server);
-    setName(server.name);
-    setHost(server.host);
-    setPort(String(server.port));
-    setTls(server.tls);
-    setPathPrefix(server.pathPrefix ?? '');
-    setApiKey(server.apiKey ?? '');
-    setType(server.type);
-    setEnabled(server.enabled);
-    setShowForm(true);
-  };
+  const openEdit = async (provider: ProviderConfig) => {
+    setEditingProvider(provider);
+    setName(provider.name);
 
-  const handleSave = () => {
-    if (!name.trim() || !host.trim()) return;
-    const portNum = parseInt(port.trim(), 10) || (tls ? 443 : 80);
-    const prefix = pathPrefix.trim() || undefined;
-    const payload: Omit<Server, 'id'> = {
-      name: name.trim(),
-      host: host.trim(),
-      port: portNum,
-      tls,
-      pathPrefix: prefix,
-      apiKey: apiKey.trim() || undefined,
-      enabled,
-      isCloud: host.trim().includes('ollama.com'),
-      type,
-    };
-    if (editingServer) {
-      updateServer(editingServer.id, payload);
+    if (provider.type === 'jules') {
+      setType('jules');
+      setHost('');
+      setPort('');
+      setTls(false);
+      setPathPrefix('');
     } else {
-      addServer(payload);
+      const url = provider.url;
+      const parsed = parseLegacyUrl(url);
+      setHost(parsed.host);
+      setPort(String(parsed.port));
+      setTls(parsed.tls);
+      setPathPrefix(parsed.pathPrefix ?? '');
+      setType(provider.type === 'zeroclaw' ? 'zeroclaw' : 'ollama');
+    }
+
+    const savedKey = await getApiKey(provider.id);
+    setApiKey(savedKey ?? '');
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (type !== 'jules' && !host.trim()) return;
+    if (!name.trim()) return;
+
+    let providerType: ProviderType;
+    if (type === 'zeroclaw') providerType = 'zeroclaw';
+    else if (type === 'jules') providerType = 'jules';
+    else providerType = host.includes('ollama.com') ? 'ollama-cloud' : 'ollama-local';
+
+    const portNum = parseInt(port.trim(), 10) || (tls ? 443 : 80);
+    const prefix = pathPrefix.trim() || '';
+    const protocol = tls ? 'https' : 'http';
+    let url = '';
+
+    if (type !== 'jules') {
+      url = `${protocol}://${host.trim()}`;
+      if (portNum !== (tls ? 443 : 80)) {
+        url += `:${portNum}`;
+      }
+      if (prefix) {
+        const cleanPrefix = prefix.replace(/^\/+|\/+$/g, '');
+        if (cleanPrefix) url += `/${cleanPrefix}`;
+      }
+    }
+
+    const payload = {
+      type: providerType,
+      name: name.trim(),
+      url: type !== 'jules' ? url : undefined,
+      apiKey: apiKey.trim() || undefined,
+    };
+
+    if (editingProvider) {
+      await updateProvider(editingProvider.id, {
+        name: payload.name,
+        url: payload.url,
+      } as any);
+      if (payload.apiKey) {
+        await useProviderStore.getState().saveApiKey(editingProvider.id, payload.apiKey);
+      }
+    } else {
+      await addProvider(payload);
     }
     setShowForm(false);
   };
 
-  const handlePing = async (server: Server) => {
-    setPinging(server.id);
+  const handlePing = async (provider: ProviderConfig) => {
+    setPinging(provider.id);
     setPingResult(null);
-    let ok = false;
-    const url = buildServerUrl(server);
-
-    try {
-      if (server.type === 'zeroclaw') {
-        ok = await pingZeroClaw(url, server.apiKey);
-      } else if (server.type === 'jules') {
-        if (server.apiKey) {
-          const sources = await getSources(server.apiKey);
-          ok = Array.isArray(sources);
-        } else {
-          ok = false;
-        }
-      } else {
-        ok = await pingServer(url, server.apiKey);
-      }
-    } catch (err) {
-      console.error('Ping failed:', err);
-      ok = false;
-    }
-
+    const ok = await testProviderConnection(provider.id);
     setPinging(null);
-    setPingResult({ id: server.id, ok });
+    setPingResult({ id: provider.id, ok });
   };
 
-  const handleDelete = (server: Server) => {
-    if (server.id === 'ollama-cloud') return;
-    removeServer(server.id);
+  const handleDelete = async (provider: ProviderConfig) => {
+    if (provider.id === 'ollama-cloud') return;
+    await removeProvider(provider.id);
   };
 
-  const renderServer = ({ item }: { item: Server }) => (
+  const renderProvider = ({ item }: { item: ProviderConfig }) => (
     <TouchableOpacity
       style={[
         styles.serverRow,
-        item.id === activeServerId && styles.serverRowActive,
-        !item.enabled && styles.serverRowDisabled,
+        item.id === activeProviderId && styles.serverRowActive,
       ]}
-      onPress={() => setActive(item.id)}
+      onPress={() => setActiveProvider(item.id)}
       onLongPress={() => openEdit(item)}
       activeOpacity={0.6}
     >
@@ -147,23 +170,23 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
             {
               backgroundColor:
                 pingResult?.id === item.id ? (pingResult.ok ? '#30d158' : '#ff453a') : '#30d158',
-              opacity: item.enabled ? 1 : 0.4,
             },
           ]}
         />
       </View>
       <View style={styles.serverInfo}>
         <View style={styles.serverNameRow}>
-          <Text style={[styles.serverName, !item.enabled && styles.textDisabled]}>{item.name}</Text>
-          {item.isCloud && <Text style={styles.cloudBadge}>Cloud</Text>}
+          <Text style={styles.serverName}>{item.name}</Text>
+          {item.type === 'ollama-cloud' && <Text style={styles.cloudBadge}>Cloud</Text>}
           <Text style={styles.typeBadge}>
             {item.type === 'zeroclaw' ? 'ZeroClaw' : item.type === 'jules' ? 'Jules' : 'Ollama'}
           </Text>
-          {!item.enabled && <Text style={styles.disabledBadge}>Off</Text>}
         </View>
-        <Text style={styles.serverUrl} numberOfLines={1}>
-          {buildServerUrl(item)}
-        </Text>
+        {(item as any).url && (
+          <Text style={styles.serverUrl} numberOfLines={1}>
+            {(item as any).url}
+          </Text>
+        )}
       </View>
       <TouchableOpacity style={styles.pingBtn} onPress={() => handlePing(item)}>
         <Text style={styles.pingText}>{pinging === item.id ? '...' : 'Ping'}</Text>
@@ -193,9 +216,9 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               </View>
 
               <FlatList
-                data={servers}
+                data={providers}
                 keyExtractor={(item) => item.id}
-                renderItem={renderServer}
+                renderItem={renderProvider}
                 contentContainerStyle={styles.serverList}
               />
 
@@ -260,7 +283,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
             </>
           ) : (
             <View style={styles.form}>
-              <Text style={styles.formTitle}>{editingServer ? 'Edit Server' : 'Add Server'}</Text>
+              <Text style={styles.formTitle}>{editingProvider ? 'Edit Server' : 'Add Server'}</Text>
               <View style={styles.formSection}>
                 <View style={styles.formGroup}>
                   <Text style={styles.fieldLabel}>NAME</Text>
@@ -387,17 +410,17 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
               </View>
 
               <TouchableOpacity style={styles.connectBtn} onPress={handleSave}>
-                <Text style={styles.connectBtnText}>{editingServer ? 'Save' : 'Add Server'}</Text>
+                <Text style={styles.connectBtnText}>{editingProvider ? 'Save' : 'Add Server'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => setShowForm(false)}>
                 <Text style={styles.cancelLink}>Cancel</Text>
               </TouchableOpacity>
 
-              {editingServer && editingServer.id !== 'ollama-cloud' && (
+              {editingProvider && editingProvider.id !== 'ollama-cloud' && (
                 <TouchableOpacity
                   onPress={() => {
-                    handleDelete(editingServer);
+                    handleDelete(editingProvider);
                     setShowForm(false);
                   }}
                 >
