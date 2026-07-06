@@ -192,6 +192,51 @@ export async function deleteModel(
   }
 }
 
+export function parseLegacyUrl(url: string): {
+  host: string;
+  port: number;
+  tls: boolean;
+  pathPrefix?: string;
+} {
+  try {
+    const parsed = new URL(url);
+    const tls = parsed.protocol === 'https:';
+    const host = parsed.hostname;
+    const port = parsed.port ? parseInt(parsed.port, 10) : tls ? 443 : 80;
+    const pathPrefix = parsed.pathname.replace(/^\/+|\/+$/g, '') || undefined;
+    return { host, port, tls, pathPrefix };
+  } catch {
+    const clean = url.replace(/^https?:\/\//, '');
+    const parts = clean.split('/');
+    const hostPort = parts[0];
+    const [host, portStr] = hostPort.split(':');
+    const port = portStr ? parseInt(portStr, 10) : 11434;
+    const tls = url.startsWith('https://');
+    const pathPrefix = parts.slice(1).join('/') || undefined;
+    return { host: host || 'localhost', port, tls, pathPrefix };
+  }
+}
+
+export function buildServerUrl(server: {
+  host: string;
+  port: number;
+  tls: boolean;
+  pathPrefix?: string;
+}): string {
+  const protocol = server.tls ? 'https' : 'http';
+  let url = `${protocol}://${server.host}`;
+  if (server.port && server.port !== (server.tls ? 443 : 80)) {
+    url += `:${server.port}`;
+  }
+  if (server.pathPrefix) {
+    const prefix = server.pathPrefix.replace(/^\/+|\/+$/g, '');
+    if (prefix) {
+      url += `/${prefix}`;
+    }
+  }
+  return url;
+}
+
 export async function getModelInfo(
   baseUrl: string,
   apiKey: string | undefined,

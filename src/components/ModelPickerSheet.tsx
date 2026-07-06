@@ -3,7 +3,8 @@ import { View, FlatList, Text, TouchableOpacity, Modal, StyleSheet } from 'react
 
 import { ModelPullSheet } from './ModelPullSheet';
 import { useModelStore } from '../store/useModelStore';
-import { useServerStore } from '../store/useServerStore';
+import { useProviderStore } from '../store/useProviderStore';
+import { isZeroClawProvider } from '../api/providerTypes';
 
 interface ModelPickerSheetProps {
   visible: boolean;
@@ -12,7 +13,7 @@ interface ModelPickerSheetProps {
 
 export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
   const { models, selectedModel, selectModel, fetchModels, loading } = useModelStore();
-  const server = useServerStore((state) => state.getActiveServer());
+  const activeProvider = useProviderStore((state) => state.getActiveProvider());
   const [showPull, setShowPull] = useState(false);
 
   const handleSelect = (name: string) => {
@@ -72,7 +73,7 @@ export function ModelPickerSheet({ visible, onClose }: ModelPickerSheetProps) {
               }
             />
 
-            {server?.type !== 'zeroclaw' && (
+            {activeProvider && !isZeroClawProvider(activeProvider) && (
               <TouchableOpacity style={styles.pullBtn} onPress={() => setShowPull(true)}>
                 <Text style={styles.pullBtnText}>Pull new model</Text>
               </TouchableOpacity>
