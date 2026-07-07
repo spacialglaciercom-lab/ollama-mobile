@@ -81,7 +81,7 @@ export default function ChatScreen() {
 
     const userText = inputText.trim();
     setInputText('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const currentId = conversationRef.current || '';
 
@@ -92,7 +92,7 @@ export default function ChatScreen() {
       setLocalMessages([userMsg]);
     }
 
-    // Build messages array for API using the updated list
+    // Build messages array for API
     const apiMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
     if (showSystemPrompt && systemPromptText.trim()) {
       apiMessages.push({ role: 'system', content: systemPromptText.trim() });

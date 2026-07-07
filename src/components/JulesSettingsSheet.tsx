@@ -13,6 +13,7 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 
 import { ProviderFactoryConfig } from '../api/julesTypes';
@@ -39,6 +40,7 @@ export default function JulesSettingsSheet({
     testProviderConnection,
     saveApiKey,
     getApiKey,
+    setDefaultSource,
     testAllConnections,
     getReadyProviders,
     getConfiguredProviders,
@@ -48,6 +50,7 @@ export default function JulesSettingsSheet({
   const [newProviderApiKey, setNewProviderApiKey] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [isTesting, setIsTesting] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [apiKeyInputs, setApiKeyInputs] = useState<Record<string, string>>({});
   const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({});
 
@@ -62,6 +65,7 @@ export default function JulesSettingsSheet({
         }
       }
       setApiKeyInputs(inputs);
+      setIsLoading(false);
     };
     loadApiKeys();
   }, [providers]);

@@ -10,10 +10,7 @@ export function JulesDebugger() {
   const handleTest = async () => {
     const results = await testAllConnections();
     const allOk = Object.values(results).every((v) => v);
-    Alert.alert(
-      'Connection Test',
-      allOk ? 'All connections successful' : 'Some connections failed'
-    );
+    Alert.alert('Connection Test', allOk ? 'All connections successful' : 'Some connections failed');
   };
 
   return (
