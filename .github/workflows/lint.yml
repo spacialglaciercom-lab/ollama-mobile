@@ -12,6 +12,4 @@ jobs:
           node-version: 20
       - run: npm ci --legacy-peer-deps
       - run: npm run lint
-        env:
-          ESLINT_USE_FLAT_CONFIG: false
       - run: npx tsc --noEmit
