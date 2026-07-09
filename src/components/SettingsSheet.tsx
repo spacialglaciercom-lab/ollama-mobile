@@ -46,6 +46,11 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [enabled, setEnabled] = useState(true);
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
+
+  React.useEffect(() => {
+    setAutoDeleteInput(String(autoDeleteDays));
+  }, [autoDeleteDays]);
 
   const openAdd = () => {
     setEditingServer(null);
