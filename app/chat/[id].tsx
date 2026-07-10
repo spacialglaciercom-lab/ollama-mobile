@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,8 +14,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -52,6 +53,7 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
   // Initialize chat
   useEffect(() => {
@@ -137,7 +139,18 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    addMessage,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    sendMessage,
+    selectedModel,
+    updateConversationTitle,
+  ]);
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -160,8 +173,7 @@ export default function ChatScreen() {
     }
     return (
       <MessageBubble
-        role={item.role}
-        content={item.content}
+        message={item}
         onLongPress={() => setSelectedMessage(item)}
       />
     );
