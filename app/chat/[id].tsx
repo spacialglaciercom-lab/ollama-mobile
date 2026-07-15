@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,9 +14,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -88,7 +88,6 @@ export default function ChatScreen() {
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     // Calculate new local messages for the API call immediately
     const updatedLocalMessages = [...localMessages, userMsg];
@@ -172,7 +171,7 @@ export default function ChatScreen() {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
-    return <MessageBubble message={item} />;
+    return <MessageBubble message={item} onLongPress={() => setSelectedMessage(item)} />;
   }, []);
 
   return (

@@ -37,7 +37,7 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
 
   // Sync input with store when it changes externally
-  React.useEffect(() => {
+  useEffect(() => {
     setAutoDeleteInput(String(autoDeleteDays));
   }, [autoDeleteDays]);
 
