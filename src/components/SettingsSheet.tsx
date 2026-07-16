@@ -26,13 +26,8 @@ interface SettingsSheetProps {
 export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const { servers, activeServerId, addServer, updateServer, removeServer, setActive } =
     useServerStore();
-  const {
-    autoSaveEnabled,
-    setAutoSave,
-    autoDeleteDays,
-    setAutoDeleteDays,
-    cleanupOldConversations,
-  } = useChatStore();
+  const { autoSaveEnabled, setAutoSave, autoDeleteDays, setAutoDeleteDays, cleanupOldConversations } =
+    useChatStore();
 
   const [showForm, setShowForm] = useState(false);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
@@ -46,6 +41,12 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [enabled, setEnabled] = useState(true);
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
+
+  // Sync autoDeleteInput when autoDeleteDays changes from store
+  React.useEffect(() => {
+    setAutoDeleteInput(String(autoDeleteDays));
+  }, [autoDeleteDays]);
 
   const openAdd = () => {
     setEditingServer(null);
