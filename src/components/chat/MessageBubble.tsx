@@ -1,22 +1,34 @@
+import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 import { StoredMessage } from '../../api/types';
 
 interface MessageBubbleProps {
   message: StoredMessage;
+  onLongPress?: () => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onLongPress }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
+  const handleLongPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onLongPress?.();
+  };
+
   return (
-    <View
+    <TouchableOpacity
+      onLongPress={handleLongPress}
+      activeOpacity={0.8}
+      delayLongPress={300}
+      accessibilityRole="button"
+      accessibilityLabel={`Message from ${message.role}: ${message.content}`}
       style={[styles.container, isUser ? styles.user : isSystem ? styles.system : styles.assistant]}
     >
       <Text style={[styles.text, isSystem && styles.systemText]}>{message.content}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
