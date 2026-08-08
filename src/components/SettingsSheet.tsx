@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   View,
@@ -35,6 +35,11 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   } = useChatStore();
 
   const [showForm, setShowForm] = useState(false);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
+
+  useEffect(() => {
+    setAutoDeleteInput(String(autoDeleteDays));
+  }, [autoDeleteDays]);
   const [editingServer, setEditingServer] = useState<Server | null>(null);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
