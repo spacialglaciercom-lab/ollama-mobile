@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,8 +14,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -48,10 +49,10 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
   // Initialize chat
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function ChatScreen() {
 
     const userText = inputText.trim();
     setInputText('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const currentId = conversationRef.current || '';
 
@@ -88,7 +89,6 @@ export default function ChatScreen() {
     const userMsg = await addMessage(currentId, 'user', userText);
 
     // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }
@@ -137,34 +137,42 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    selectedModel,
+    sendMessage,
+    addMessage,
+    updateConversationTitle,
+  ]);
 
-  const allMessages = useMemo(() => [
-    ...localMessages,
-    ...(streamingContent
-      ? [
-          {
-            id: 'streaming',
-            conversationId: conversationRef.current ?? '',
-            role: 'assistant' as const,
-            content: streamingContent,
-            createdAt: Date.now(),
-          },
-        ]
-      : []),
-  ], [localMessages, streamingContent]);
+  const allMessages = useMemo(
+    () => [
+      ...localMessages,
+      ...(streamingContent
+        ? [
+            {
+              id: 'streaming',
+              conversationId: conversationRef.current ?? '',
+              role: 'assistant' as const,
+              content: streamingContent,
+              createdAt: Date.now(),
+            },
+          ]
+        : []),
+    ],
+    [localMessages, streamingContent]
+  );
 
-  const renderItem = useCallback(({ item }: { item: any }) => {
+  const renderItem = useCallback(({ item }: { item: StoredMessage }) => {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
-    return (
-      <MessageBubble
-        role={item.role}
-        content={item.content}
-        onLongPress={() => setSelectedMessage(item)}
-      />
-    );
+    return <MessageBubble message={item} onLongPress={() => setSelectedMessage(item)} />;
   }, []);
 
   return (
@@ -254,15 +262,6 @@ export default function ChatScreen() {
           }
         }}
       />
-
-      {/* Token stats */}
-      {tokenStats && !streaming && (
-        <View style={styles.tokenBar}>
-          <Text style={styles.tokenText}>
-            Prompt: {tokenStats.promptEval} · Response: {tokenStats.eval}
-          </Text>
-        </View>
-      )}
 
       {/* System prompt area */}
       {showSystemPrompt && (
@@ -458,11 +457,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
-  tokenBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-  },
-  tokenText: { color: 'rgba(235,235,245,0.3)', fontSize: 12 },
   sysPromptArea: {
     paddingHorizontal: 16,
     paddingVertical: 8,
