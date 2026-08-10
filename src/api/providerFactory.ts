@@ -14,7 +14,6 @@ import {
   OllamaLocalProviderConfig,
   ZeroClawProviderConfig,
   JulesProviderConfig,
-  AnyProviderInstance,
   OllamaCloudProviderInstance,
   OllamaLocalProviderInstance,
   ZeroClawProviderInstance,
@@ -26,7 +25,6 @@ import {
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory
