@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   View,
@@ -44,8 +44,13 @@ export function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const [apiKey, setApiKey] = useState('');
   const [type, setType] = useState<ServerType>('ollama');
   const [enabled, setEnabled] = useState(true);
+  const [autoDeleteInput, setAutoDeleteInput] = useState(String(autoDeleteDays));
   const [pinging, setPinging] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<{ id: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    setAutoDeleteInput(String(autoDeleteDays));
+  }, [autoDeleteDays]);
 
   const openAdd = () => {
     setEditingServer(null);
