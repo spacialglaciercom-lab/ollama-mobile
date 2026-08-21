@@ -35,10 +35,6 @@ export function CommitSheet({
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const dirtyCount = status
-    ? status.modified.length + status.added.length + status.deleted.length + status.untracked.length
-    : 0;
-
   const handleCommit = async () => {
     if (!message.trim()) return;
     setWorking(true);
@@ -52,8 +48,8 @@ export function CommitSheet({
       setMessage('');
       markSynced(repoId);
       onDone();
-    } catch (err: any) {
-      setError(err?.message || 'Commit failed');
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Commit failed');
     } finally {
       setWorking(false);
     }
@@ -67,8 +63,8 @@ export function CommitSheet({
       await pushRepo(repoId, branch, pat || undefined);
       markSynced(repoId);
       onDone();
-    } catch (err: any) {
-      setError(err?.message || 'Push failed');
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Push failed');
     } finally {
       setWorking(false);
     }
@@ -82,8 +78,8 @@ export function CommitSheet({
       await pullRepo(repoId, branch, pat || undefined);
       markSynced(repoId);
       onDone();
-    } catch (err: any) {
-      setError(err?.message || 'Pull failed');
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Pull failed');
     } finally {
       setWorking(false);
     }
