@@ -6,7 +6,6 @@ import {
   pingServer,
   streamChat as ollamaStreamChat,
 } from './ollamaClient';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
   ProviderFactoryConfig,
@@ -14,7 +13,6 @@ import {
   OllamaLocalProviderConfig,
   ZeroClawProviderConfig,
   JulesProviderConfig,
-  AnyProviderInstance,
   OllamaCloudProviderInstance,
   OllamaLocalProviderInstance,
   ZeroClawProviderInstance,
