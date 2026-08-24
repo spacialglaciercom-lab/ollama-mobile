@@ -149,29 +149,31 @@ export default function ChatScreen() {
     updateConversationTitle,
   ]);
 
-  const allMessages = useMemo(
-    () => [
-      ...localMessages,
-      ...(streamingContent
-        ? [
-            {
-              id: 'streaming',
-              conversationId: conversationRef.current ?? '',
-              role: 'assistant' as const,
-              content: streamingContent,
-              createdAt: Date.now(),
-            },
-          ]
-        : []),
-    ],
-    [localMessages, streamingContent]
-  );
+  const allMessages = useMemo(() => [
+    ...localMessages,
+    ...(streamingContent
+      ? [
+          {
+            id: 'streaming',
+            conversationId: conversationRef.current ?? '',
+            role: 'assistant' as const,
+            content: streamingContent,
+            createdAt: Date.now(),
+          },
+        ]
+      : []),
+  ], [localMessages, streamingContent]);
 
   const renderItem = useCallback(({ item }: { item: StoredMessage }) => {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
-    return <MessageBubble message={item} onLongPress={() => setSelectedMessage(item)} />;
+    return (
+      <MessageBubble
+        message={item}
+        onLongPress={() => setSelectedMessage(item)}
+      />
+    );
   }, []);
 
   return (
