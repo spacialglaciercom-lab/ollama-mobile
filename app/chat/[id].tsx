@@ -11,6 +11,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -52,6 +53,7 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef<string>('');
 
   // Initialize chat
   useEffect(() => {
@@ -87,8 +89,6 @@ export default function ChatScreen() {
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
 
-    // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }
@@ -137,7 +137,18 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    addMessage,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    sendMessage,
+    selectedModel,
+    updateConversationTitle,
+  ]);
 
   const allMessages = useMemo(() => [
     ...localMessages,
@@ -154,15 +165,18 @@ export default function ChatScreen() {
       : []),
   ], [localMessages, streamingContent]);
 
-  const renderItem = useCallback(({ item }: { item: any }) => {
+  type ChatListItem =
+    | StoredMessage
+    | { id: string; conversationId: string; role: 'assistant'; content: string; createdAt: number };
+
+  const renderItem = useCallback(({ item }: { item: ChatListItem }) => {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
     return (
       <MessageBubble
-        role={item.role}
-        content={item.content}
-        onLongPress={() => setSelectedMessage(item)}
+        message={item as StoredMessage}
+        onLongPress={() => setSelectedMessage(item as StoredMessage)}
       />
     );
   }, []);
