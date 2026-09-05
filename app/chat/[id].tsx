@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,8 +14,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -48,10 +49,11 @@ export default function ChatScreen() {
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [systemPromptText, setSystemPromptText] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<StoredMessage | null>(null);
-  const [tokenStats, setTokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
+  const [tokenStats] = useState<{ promptEval: number; eval: number } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef('');
 
   // Initialize chat
   useEffect(() => {
@@ -80,15 +82,13 @@ export default function ChatScreen() {
 
     const userText = inputText.trim();
     setInputText('');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const currentId = conversationRef.current || '';
 
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
 
-    // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }
@@ -137,31 +137,44 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    localMessages,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    selectedModel,
+    sendMessage,
+    addMessage,
+    updateConversationTitle,
+  ]);
 
-  const allMessages = useMemo(() => [
-    ...localMessages,
-    ...(streamingContent
-      ? [
-          {
-            id: 'streaming',
-            conversationId: conversationRef.current ?? '',
-            role: 'assistant' as const,
-            content: streamingContent,
-            createdAt: Date.now(),
-          },
-        ]
-      : []),
-  ], [localMessages, streamingContent]);
+  const allMessages = useMemo(
+    () => [
+      ...localMessages,
+      ...(streamingContent
+        ? [
+            {
+              id: 'streaming',
+              conversationId: conversationRef.current ?? '',
+              role: 'assistant' as const,
+              content: streamingContent,
+              createdAt: Date.now(),
+            },
+          ]
+        : []),
+    ],
+    [localMessages, streamingContent]
+  );
 
-  const renderItem = useCallback(({ item }: { item: any }) => {
+  const renderItem = useCallback(({ item }: { item: StoredMessage }) => {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
     return (
       <MessageBubble
-        role={item.role}
-        content={item.content}
+        message={item}
         onLongPress={() => setSelectedMessage(item)}
       />
     );
@@ -403,7 +416,6 @@ const styles = StyleSheet.create({
   },
   menuRow: { paddingHorizontal: 16, paddingVertical: 11 },
   menuLabel: { color: '#fff', fontSize: 17 },
-  menuLabelAccent: { color: '#30d158', fontSize: 17 },
   menuLabelDanger: { color: '#ff453a', fontSize: 17 },
   menuSep: {
     height: StyleSheet.hairlineWidth,
@@ -424,40 +436,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  bubbleWrap: { marginBottom: 8 },
-  bubbleWrapUser: { alignSelf: 'flex-end', maxWidth: '80%' },
-  bubbleWrapAssistant: { alignSelf: 'flex-start', maxWidth: '80%' },
-  bubbleWrapSystem: { alignSelf: 'center', maxWidth: '90%' },
-  bubbleWrapSelected: {
-    borderWidth: 1.5,
-    borderColor: '#30d158',
-    borderRadius: 18,
-  },
-  bubble: { paddingHorizontal: 14, paddingVertical: 10 },
-  bubbleUser: {
-    backgroundColor: '#1a3a5c',
-    borderRadius: 18,
-    borderBottomRightRadius: 4,
-  },
-  bubbleAssistant: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleSystem: {
-    backgroundColor: 'rgba(48,209,88,0.08)',
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(48,209,88,0.2)',
-  },
-  bubbleText: { color: '#fff', fontSize: 15, lineHeight: 21 },
-  bubbleSystemText: {
-    color: 'rgba(48,209,88,0.7)',
-    fontSize: 13,
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
-  cursor: { color: '#30d158', fontSize: 14, marginTop: 2 },
   tokenBar: {
     paddingHorizontal: 16,
     paddingVertical: 4,
