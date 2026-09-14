@@ -1,22 +1,32 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { StoredMessage } from '../../api/types';
 
-interface MessageBubbleProps {
-  message: StoredMessage;
+export interface MessageBubbleProps {
+  message?: StoredMessage;
+  role?: 'user' | 'assistant' | 'system';
+  content?: string;
+  onLongPress?: () => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const isUser = message.role === 'user';
-  const isSystem = message.role === 'system';
+export function MessageBubble({ message, role, content, onLongPress }: MessageBubbleProps) {
+  const effectiveRole = message?.role ?? role ?? 'assistant';
+  const effectiveContent = message?.content ?? content ?? '';
+
+  const isUser = effectiveRole === 'user';
+  const isSystem = effectiveRole === 'system';
+
+  const BubbleWrapper = onLongPress ? TouchableOpacity : View;
 
   return (
-    <View
+    <BubbleWrapper
+      onLongPress={onLongPress}
+      activeOpacity={0.8}
       style={[styles.container, isUser ? styles.user : isSystem ? styles.system : styles.assistant]}
     >
-      <Text style={[styles.text, isSystem && styles.systemText]}>{message.content}</Text>
-    </View>
+      <Text style={[styles.text, isSystem && styles.systemText]}>{effectiveContent}</Text>
+    </BubbleWrapper>
   );
 }
 
