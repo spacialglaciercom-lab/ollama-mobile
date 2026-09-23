@@ -6,6 +6,7 @@ import {
   pingServer,
   streamChat as ollamaStreamChat,
 } from './ollamaClient';
+import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 import {
   ProviderConfig,
   ProviderFactoryConfig,
@@ -24,7 +25,6 @@ import {
   DEFAULT_ZEROCLAW_PROVIDER,
   DEFAULT_JULES_PROVIDER,
 } from './providerTypes';
-import { streamZeroClawChat, pingZeroClaw } from './zeroclawClient';
 
 /**
  * ProviderFactory
@@ -202,7 +202,9 @@ export class ProviderFactory {
     };
   }
 
-  private static createZeroClawProvider(config: ZeroClawProviderConfig): ZeroClawProviderInstance {
+  private static createZeroClawProvider(
+    config: ZeroClawProviderConfig
+  ): ZeroClawProviderInstance {
     return {
       config,
       testConnection: async () => {
