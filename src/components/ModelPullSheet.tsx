@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 
 import { useServerStore, buildServerUrl } from '../store/useServerStore';
 
@@ -81,9 +81,11 @@ export function ModelPullSheet({ visible, onClose, onComplete }: ModelPullSheetP
       setProgress(1);
       setStatus('Complete');
       onComplete();
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        setError(err?.message ?? 'Pull failed');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err.message);
+      } else if (!(err instanceof Error)) {
+        setError('Pull failed');
       }
     } finally {
       setPulling(null);

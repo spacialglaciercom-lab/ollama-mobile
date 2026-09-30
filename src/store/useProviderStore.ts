@@ -19,6 +19,7 @@ import {
   DEFAULT_OLLAMA_CLOUD_PROVIDER,
   DEFAULT_OLLAMA_LOCAL_PROVIDER,
   isJulesProvider,
+  JulesProviderConfig,
 } from '../api/providerTypes';
 
 const storage = new MMKV();
@@ -246,7 +247,9 @@ export const useProviderStore = create<ProviderStore>()(
       setDefaultSource: async (providerId, sourceId) => {
         const provider = get().providers.find((p) => p.id === providerId);
         if (provider && !isJulesProvider(provider)) return;
-        await get().updateProvider(providerId, { defaultSourceId: sourceId } as any);
+        await get().updateProvider(providerId, {
+          defaultSourceId: sourceId,
+        } as Partial<JulesProviderConfig>);
       },
 
       getProviderStatus: (id) => {
@@ -289,12 +292,12 @@ export const useProviderStore = create<ProviderStore>()(
         ({
           // Only persist non-sensitive data
           providers: state.providers.map((p) => {
-            const { apiKey: _, ...rest } = p as any;
-            return { ...rest, apiKey: '' };
+            const { apiKey, ...rest } = p as ProviderConfig & { apiKey?: string };
+            return { ...rest, apiKey: apiKey ? '' : '' };
           }) as ProviderConfig[],
           activeProviderId: state.activeProviderId,
           connectionStatus: state.connectionStatus,
-        }) as any,
+        }) as unknown as ProviderStore,
     }
   )
 );
