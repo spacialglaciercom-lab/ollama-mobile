@@ -298,7 +298,9 @@ export function isOllamaLocalInstance(
 /**
  * Check if a provider instance is ZeroClaw
  */
-export function isZeroClawInstance(instance: AnyProviderInstance): instance is ZeroClawProviderInstance {
+export function isZeroClawInstance(
+  instance: AnyProviderInstance
+): instance is ZeroClawProviderInstance {
   return (instance.config as any).type === 'zeroclaw';
 }
 
