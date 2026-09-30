@@ -171,7 +171,12 @@ export default function ChatScreen() {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
-    return <MessageBubble message={item} onLongPress={() => setSelectedMessage(item)} />;
+    return (
+      <MessageBubble
+        message={item}
+        onLongPress={() => setSelectedMessage(item)}
+      />
+    );
   }, []);
 
   return (
