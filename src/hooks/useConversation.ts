@@ -9,7 +9,7 @@ export function useConversation(conversationId: string | null) {
     if (conversationId) {
       loadMessages(conversationId);
     }
-  }, [conversationId, loadMessages]);
+  }, [conversationId]);
 
   const conversation = conversations.find((c) => c.id === conversationId);
 

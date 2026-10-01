@@ -35,6 +35,10 @@ export function CommitSheet({
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const dirtyCount = status
+    ? status.modified.length + status.added.length + status.deleted.length + status.untracked.length
+    : 0;
+
   const handleCommit = async () => {
     if (!message.trim()) return;
     setWorking(true);

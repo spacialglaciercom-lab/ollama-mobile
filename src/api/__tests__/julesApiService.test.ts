@@ -88,17 +88,13 @@ describe('julesApiService', () => {
     it('should throw error when fetch fails with status 401', async () => {
       mockFetchResponse(false, 401, {}, 'Unauthorized');
 
-      await expect(getSources(TEST_API_KEY)).rejects.toThrow(
-        'Failed to fetch sources: 401 Unauthorized'
-      );
+      await expect(getSources(TEST_API_KEY)).rejects.toThrow('Failed to fetch sources: 401 Unauthorized');
     });
 
     it('should throw error when fetch fails with status 404', async () => {
       mockFetchResponse(false, 404, {}, 'Not Found');
 
-      await expect(getSources(TEST_API_KEY)).rejects.toThrow(
-        'Failed to fetch sources: 404 Not Found'
-      );
+      await expect(getSources(TEST_API_KEY)).rejects.toThrow('Failed to fetch sources: 404 Not Found');
     });
 
     it('should throw error when network request fails', async () => {
