@@ -11,6 +11,7 @@ import { MMKV } from 'react-native-mmkv';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+import { getSources } from '../api/julesApiService';
 import { JulesProviderFactory } from '../api/julesProviderFactory';
 import {
   JulesProviderConfig,
@@ -18,7 +19,9 @@ import {
   JulesProviderStatus,
   JulesSettingsState,
   ProviderFactoryConfig,
+  JULES_STORAGE_KEYS,
   JULES_SECURE_KEYS,
+  DEFAULT_JULES_PROVIDER,
 } from '../api/julesTypes';
 
 const storage = new MMKV();
