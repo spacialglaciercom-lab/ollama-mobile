@@ -47,3 +47,28 @@ jest.mock('expo-haptics', () => ({
     Heavy: 'heavy',
   },
 }));
+
+// Mock expo-file-system
+jest.mock('expo-file-system', () => ({
+  documentDirectory: 'file:///mock/document/dir/',
+  writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
+  readAsStringAsync: jest.fn().mockResolvedValue(''),
+  EncodingType: {
+    UTF8: 'utf8',
+  },
+}));
+
+// Mock expo-sharing
+jest.mock('expo-sharing', () => ({
+  shareAsync: jest.fn().mockResolvedValue(undefined),
+  isAvailableAsync: jest.fn().mockResolvedValue(true),
+}));
+
+// Mock Settings native module for react-native
+jest.mock('react-native/Libraries/Settings/Settings', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+  clear: jest.fn(),
+  watchKeys: jest.fn(),
+  clearWatch: jest.fn(),
+}));
