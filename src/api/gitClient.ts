@@ -22,7 +22,7 @@ const expoFS: any = {
       return Buffer.from(base64, 'base64');
     },
 
-    writeFile: async (path: string, data: string | Buffer, opts?: { encoding?: string }) => {
+    writeFile: async (path: string, data: string | Buffer, _opts?: { encoding?: string }) => {
       const dirPath = path.substring(0, path.lastIndexOf('/'));
       const dir = new Directory(dirPath);
       if (!dir.exists) {

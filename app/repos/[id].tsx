@@ -41,7 +41,7 @@ export default function RepoBrowserScreen() {
         const items = await listDir(id, subPath);
         setEntries(items);
         setCurrentPath(subPath);
-      } catch (err: any) {
+      } catch {
         setEntries([]);
       } finally {
         setLoading(false);
@@ -64,7 +64,7 @@ export default function RepoBrowserScreen() {
   useEffect(() => {
     loadDir('');
     loadStatus();
-  }, [id]);
+  }, [id, loadDir, loadStatus]);
 
   const handleOpenEntry = (entry: FileEntry) => {
     if (entry.isDirectory) {

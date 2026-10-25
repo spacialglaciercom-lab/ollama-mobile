@@ -1,5 +1,5 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -241,9 +241,9 @@ function tokenizeLine(line: string): Token[] {
     }
 
     // Operator / punctuation
-    if (/[+\-*/%=<>!&|^~?:;,.{}()\[\]@]/.test(line[i])) {
+    if (/[+\-*/%=<>!&|^~?:;,.{}()[\]@]/.test(line[i])) {
       const start = i;
-      while (i < line.length && /[+\-*/%=<>!&|^~?:;,.{}()\[\]@]/.test(line[i])) i++;
+      while (i < line.length && /[+\-*/%=<>!&|^~?:;,.{}()[\]@]/.test(line[i])) i++;
       tokens.push({ text: line.slice(start, i), type: 'operator' });
       continue;
     }
@@ -310,7 +310,7 @@ export default function FileEditorScreen() {
         const text = await readFile(id, filePath);
         setContent(text);
         setOriginalContent(text);
-      } catch (err: any) {
+      } catch {
         setContent('');
         setOriginalContent('');
       } finally {
@@ -331,7 +331,7 @@ export default function FileEditorScreen() {
       await writeFile(id, filePath, content);
       setOriginalContent(content);
       setSaved(true);
-    } catch (err: any) {
+    } catch {
       // Could show error
     } finally {
       setSaving(false);
@@ -348,7 +348,6 @@ export default function FileEditorScreen() {
 
   // Render highlighted lines
   const lines = content.split('\n');
-  const lineCount = lines.length;
 
   return (
     <KeyboardAvoidingView

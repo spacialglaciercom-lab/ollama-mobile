@@ -289,7 +289,8 @@ export const useProviderStore = create<ProviderStore>()(
         ({
           // Only persist non-sensitive data
           providers: state.providers.map((p) => {
-            const { apiKey: _, ...rest } = p as any;
+            const rest = { ...p } as Record<string, unknown>;
+            delete rest.apiKey;
             return { ...rest, apiKey: '' };
           }) as ProviderConfig[],
           activeProviderId: state.activeProviderId,
