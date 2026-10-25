@@ -8,7 +8,7 @@ import { RepoCloneSheet } from '../../src/components/RepoCloneSheet';
 import { useRepoStore } from '../../src/store/useRepoStore';
 
 export default function ReposScreen() {
-  const { repos, loadRepos, removeRepo, pat, loadPat, loadAuthor } = useRepoStore();
+  const { repos, loadRepos, removeRepo, loadPat, loadAuthor } = useRepoStore();
   const [cloneVisible, setCloneVisible] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, GitStatusResult>>({});
 
@@ -16,7 +16,7 @@ export default function ReposScreen() {
     loadRepos();
     loadPat();
     loadAuthor();
-  }, []);
+  }, [loadRepos, loadPat, loadAuthor]);
 
   // Load git status for each repo
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function ReposScreen() {
     );
   };
 
-  const handleCloned = (repoId: string) => {
+  const handleCloned = (_repoId: string) => {
     setCloneVisible(false);
     loadRepos();
   };

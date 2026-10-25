@@ -46,7 +46,7 @@ const SECRET_PATTERNS = [
   { regex: /(Bearer\s+)([a-zA-Z0-9._-]+)/gi, replacement: '$1[REDACTED]' },
   { regex: /(sk-[a-zA-Z0-9]{48,})/gi, replacement: '[REDACTED]' }, // OpenAI-style keys
   { regex: /(ghp_[a-zA-Z0-9]{36,})/gi, replacement: '[REDACTED]' }, // GitHub PATs
-  { regex: /(xox[baprs]-[a-zA-Z0-9\-]{10,})/gi, replacement: '[REDACTED]' }, // Slack tokens
+  { regex: /(xox[baprs]-[a-zA-Z0-9-]{10,})/gi, replacement: '[REDACTED]' }, // Slack tokens
 ];
 
 function redactSecrets(obj: any): any {
