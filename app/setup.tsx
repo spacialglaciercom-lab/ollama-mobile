@@ -24,7 +24,7 @@ export default function SetupScreen() {
       setUrl(buildServerUrl(cloud));
       setApiKey(cloud.apiKey ?? '');
     }
-  }, []);
+  }, [servers]);
 
   const handleConnect = async () => {
     if (!url.trim()) return;
