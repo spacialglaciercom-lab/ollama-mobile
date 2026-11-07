@@ -1,3 +1,6 @@
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,8 +14,6 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 
 import { StoredMessage } from '../../src/api/types';
 import { MessageActionSheet } from '../../src/components/MessageActionSheet';
@@ -52,6 +53,7 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const conversationRef = useRef<string | null>(null);
+  const streamingContentRef = useRef<string>('');
 
   // Initialize chat
   useEffect(() => {
@@ -87,8 +89,6 @@ export default function ChatScreen() {
     // Add user message
     const userMsg = await addMessage(currentId, 'user', userText);
 
-    // Calculate new local messages for the API call immediately
-    const updatedLocalMessages = [...localMessages, userMsg];
     if (id === 'new') {
       setLocalMessages([userMsg]);
     }
@@ -137,33 +137,45 @@ export default function ChatScreen() {
       const title = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
       updateConversationTitle(currentId, title);
     }
-  };
+  }, [
+    inputText,
+    streaming,
+    addMessage,
+    id,
+    showSystemPrompt,
+    systemPromptText,
+    localMessages,
+    sendMessage,
+    selectedModel,
+    updateConversationTitle,
+  ]);
 
-  const allMessages = useMemo(() => [
-    ...localMessages,
-    ...(streamingContent
-      ? [
-          {
-            id: 'streaming',
-            conversationId: conversationRef.current ?? '',
-            role: 'assistant' as const,
-            content: streamingContent,
-            createdAt: Date.now(),
-          },
-        ]
-      : []),
-  ], [localMessages, streamingContent]);
+  const allMessages = useMemo(
+    () => [
+      ...localMessages,
+      ...(streamingContent
+        ? [
+            {
+              id: 'streaming',
+              conversationId: conversationRef.current ?? '',
+              role: 'assistant' as const,
+              content: streamingContent,
+              createdAt: Date.now(),
+            },
+          ]
+        : []),
+    ],
+    [localMessages, streamingContent]
+  );
 
-  const renderItem = useCallback(({ item }: { item: any }) => {
+  const renderItem = useCallback(({ item }: { item: StoredMessage }) => {
     if (item.id === 'streaming') {
       return <StreamingBubble content={item.content} />;
     }
     return (
-      <MessageBubble
-        role={item.role}
-        content={item.content}
-        onLongPress={() => setSelectedMessage(item)}
-      />
+      <TouchableOpacity onLongPress={() => setSelectedMessage(item)} activeOpacity={0.8}>
+        <MessageBubble message={item} />
+      </TouchableOpacity>
     );
   }, []);
 
